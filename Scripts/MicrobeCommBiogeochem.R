@@ -1,6 +1,6 @@
 #Biogeochem for microbial samples data processing
 ## By: Jenn Fields
-## Last updated: 12.22.2020
+## Last updated: 12.23.2020
 ###########################
 ## clear workspace
 rm(list=ls())
@@ -20,10 +20,6 @@ library(ggrepel) #for pcas
 library(heplots)
 library(zoo) #rolling averages
 library(broom) #for tidy function
-library(fitdistrplus) #distribution of data
-devtools::install_github("seananderson/ggsidekick")
-library(GGally) #for ggpairs function
-library(ggsidekick) #for theme sleek
 library(tidyverse) #for all things %>%
 
 # load data
@@ -35,7 +31,6 @@ Nutrients<-read_csv("Data/Biogeochem/RawNutrientData.csv")
 CarbChem<-read_csv("Data/Biogeochem/ChemData.csv")
 Salinity<-read_csv("Data/Biogeochem/SampleSalinityData_Adjusted.csv")
 TA<- read_csv("Data/Biogeochem/TASamples_Adjusted.csv")
-Communitymetrics <- read_csv("Data/CommunityComposition/Communitymetrics.csv")
 
 
 ## bring in pH calibration files
@@ -199,7 +194,7 @@ CarbChemAll<-pHcalib %>%
   dplyr::nest_by(date_triscal)%>%
   dplyr::mutate(fitpH = list(lm(mVTris~TTris, data = data))) %>% # linear regression of mV and temp of the tris
   dplyr::summarise(broom::tidy(fitpH)) %>% # make the output tidy
-  select(date_triscal, term, estimate) %>%
+  dplyr::select(date_triscal, term, estimate) %>%
   pivot_wider(names_from = term, values_from = estimate) %>%# put slope and intercept in their own column
   left_join(CarbChemAll,.) %>% # join with the pH sample data
   mutate(mVTris = Temp.in*TTris + `(Intercept)`) %>% # calculate the mV of the tris at temperature in which the pH of samples were measured
@@ -364,7 +359,7 @@ TP24all <- CarbChemAll %>%
                 DeltapCO2 = pCO2 - lag(pCO2, default = first(pCO2)),
                 DeltaDO = DO_mg_L - lag(DO_mg_L, default = first(DO_mg_L))) %>%
   filter(TADeltaTime != 0) %>% #filters out row where deltas = 0
-  select(PoolID, Id_code, Time_Point,Foundation_spp,Before_After,Removal_Control,Day_Night,Group,TADeltaTime, DICDeltaTime,
+  dplyr::select(PoolID, Id_code, Time_Point,Foundation_spp,Before_After,Removal_Control,Day_Night,Group,TADeltaTime, DICDeltaTime,
          DeltaTime,DeltaNN,DeltaNH4,DeltaPO,DeltapH,DeltapCO2,DeltaDO)
 
 #combine dataframes
@@ -485,7 +480,7 @@ AirSeaFluxTPall<- CarbChemAll %>%
                 NH4mean = rollmean(NH4_umol_L, 2, na.pad=TRUE, align="right"),
                 POmean = rollmean(PO_umol_L, 2, na.pad=TRUE, align="right")) %>% 
   filter(Tempmean != 'NA') %>% #removes row that values are NA (time 1:time1) 
-  select(PoolID, Id_code, Time_Point,Foundation_spp,Before_After,Removal_Control,Day_Night,Group,
+  dplyr::select(PoolID, Id_code, Time_Point,Foundation_spp,Before_After,Removal_Control,Day_Night,Group,
          Tempmean,pCO2mean,Salinitymean,Windmean,pHmean,DOmean, NNmean, NH4mean,POmean) #selects the columns needed for air-sea flux equation
 
 #TP24
@@ -508,7 +503,7 @@ TP24AirseafluxTPall<- CarbChemAll %>%
                 NH4mean = rollmean(NH4_umol_L, 2, na.pad=TRUE, align="right"),
                 POmean = rollmean(PO_umol_L, 2, na.pad=TRUE, align="right")) %>% 
   filter(Tempmean != 'NA') %>% #removes row that values are NA (time 1:time1) 
-  select(PoolID, Id_code, Time_Point,Foundation_spp,Before_After,Removal_Control,Day_Night,Group,
+  dplyr::select(PoolID, Id_code, Time_Point,Foundation_spp,Before_After,Removal_Control,Day_Night,Group,
          Tempmean,pCO2mean,Salinitymean,Windmean,pHmean,DOmean,NNmean, NH4mean,POmean) #selects the columns needed for air-sea flux equation
 
 
@@ -638,7 +633,7 @@ TP24Time5 <- Time5CarbChem %>%
                 DeltapCO2 = pCO2 - lag(pCO2, default = first(pCO2)),
                 DeltaDO = DO_mg_L - lag(DO_mg_L, default = first(DO_mg_L))) %>%
   filter(TADeltaTime != 0) %>% #filters out row where deltas = 0
-  select(PoolID, Id_code, Time_Point,Foundation_spp,Before_After,Removal_Control,Day_Night,Group,TADeltaTime, DICDeltaTime,
+  dplyr::select(PoolID, Id_code, Time_Point,Foundation_spp,Before_After,Removal_Control,Day_Night,Group,TADeltaTime, DICDeltaTime,
          DeltaTime,DeltaNN,DeltaNH4,DeltaPO,DeltapH,DeltapCO2,DeltaDO)
 
 #combine dataframes
@@ -760,7 +755,7 @@ AirSeaFluxTime5<- Time5CarbChem %>%
                 NH4mean = rollmean(NH4_umol_L, 2, na.pad=TRUE, align="right"),
                 POmean = rollmean(PO_umol_L, 2, na.pad=TRUE, align="right")) %>% 
   filter(Tempmean != 'NA') %>% #removes row that values are NA (time 1:time1) 
-  select(PoolID, Id_code, Time_Point,Foundation_spp,Before_After,Removal_Control,Day_Night,Group,
+  dplyr::select(PoolID, Id_code, Time_Point,Foundation_spp,Before_After,Removal_Control,Day_Night,Group,
          Tempmean,pCO2mean,Salinitymean,Windmean,pHmean,DOmean, NNmean, NH4mean,POmean) #selects the columns needed for air-sea flux equation
 
 #TP24 time 5
@@ -783,7 +778,7 @@ TP24time5Airflux<- Time5CarbChem%>%
                 NH4mean = rollmean(NH4_umol_L, 2, na.pad=TRUE, align="right"),
                 POmean = rollmean(PO_umol_L, 2, na.pad=TRUE, align="right")) %>% 
   filter(Tempmean != 'NA') %>% #removes row that values are NA (time 1:time1) 
-  select(PoolID, Id_code, Time_Point,Foundation_spp,Before_After,Removal_Control,Day_Night,Group,
+  dplyr::select(PoolID, Id_code, Time_Point,Foundation_spp,Before_After,Removal_Control,Day_Night,Group,
          Tempmean,pCO2mean,Salinitymean,Windmean,pHmean,DOmean,NNmean, NH4mean,POmean) #selects the columns needed for air-sea flux equation
 
 #combine dataframes
@@ -806,7 +801,7 @@ AirSeaFluxTime4<- Time4CarbChem %>%
                 NH4mean = rollmean(NH4_umol_L, 2, na.pad=TRUE, align="right"),
                 POmean = rollmean(PO_umol_L, 2, na.pad=TRUE, align="right")) %>% 
   filter(Tempmean != 'NA') %>% #removes row that values are NA (time 1:time1) 
-  select(PoolID, Id_code, Time_Point,Foundation_spp,Before_After,Removal_Control,Day_Night,Group,
+  dplyr::select(PoolID, Id_code, Time_Point,Foundation_spp,Before_After,Removal_Control,Day_Night,Group,
          Tempmean,pCO2mean,Salinitymean,Windmean,pHmean,DOmean, NNmean, NH4mean,POmean) #selects the columns needed for air-sea flux equation
 
 AllAirseaflux<-rbind(AirSeaFluxTime5,AirSeaFluxTime4)
