@@ -1,0 +1,91 @@
+##Community Composition data for Sessile and Mobiles from Surfgrass and Mussel
+##Oregon Tide Pools
+##By: Jenn Fields
+##Last updated: 12.23.2020
+
+rm(list=ls()) #Clears the environment
+
+#load libraries
+library(tidyverse)
+
+#load data from community comp surveys
+#source scripts
+source("scripts/tidepoolphysicalparameters.R")
+#data
+Sessiles <- read_csv("Data/CommunityComposition/SessilesAll.csv")
+Mobiles <- read_csv("Data/CommunityComposition/Mobiles.csv")
+SessilesGroupings<-read_csv("Data/CommunityComposition/SessilesFunwithcitations.csv")
+MobileGroupings<-read_csv("Data/CommunityComposition/MobilesFun.csv")
+
+#replace NA with 0
+Mobiles[is.na(Mobiles)]<-0
+
+#######Sessiles#########
+#convert characters to numeric in sessile sheet
+Sessiles$Epiactis.prolifera<-as.numeric(Sessiles$Epiactis.prolifera)
+Sessiles$Chaetomorpha.linum<-as.numeric(Sessiles$Chaetomorpha.linum)
+Sessiles$Costaria.costata<-as.numeric(Sessiles$Costaria.costata)
+Sessiles[is.na(Sessiles)]<-0 
+
+# Make all the community data a relative percent
+PercentSessile<-100*Sessiles[7:ncol(Sessiles)]/Sessiles$Squares #change to rock--end spp
+#View(PercentSessile)
+#normalize to the sum of the total cover (since it can be greater than 100%)
+StandardizedSessile<- 100*PercentSessile/rowSums(PercentSessile)
+
+
+Communitymetrics<-cbind(Sessiles$PoolID, Sessiles$Foundation_spp, Sessiles$Removal_Control, 
+                        Sessiles$Before_After,StandardizedSessile,PercentSessile$Mytilus.californianus,PercentSessile$Phyllospadix.spp)
+Communitymetrics <- Communitymetrics %>%
+  rename(PoolID = "Sessiles$PoolID", Foundation_spp = "Sessiles$Foundation_spp",Removal_Control ="Sessiles$Removal_Control",
+         Before_After ="Sessiles$Before_After", AdjMusselCover=Mytilus.californianus, AdjSurfgrassCover=Phyllospadix.spp, MusselCover = "PercentSessile$Mytilus.californianus",SurfgrassCover = "PercentSessile$Phyllospadix.spp")
+#rename joined columns
+
+#summarized groups of sessile community
+#This is TP Sessile Community Metrics Dataset in Data folder
+Summarizedgroups<-Communitymetrics %>%
+  dplyr::filter(Before_After != "Immediate") %>%
+  dplyr:: mutate(allCCA = (Crustose.coralline + Bosiella.spp + Corallina.spp + Corallina.vancouveriensis +
+                             Calliarthron.tuberculosum), #creates column for all CCA
+                 macroalgae = (Diatoms + Algae.film + Turf.algae +Acrosiphonia.coalita + Analipus.japonicus + Chaetomorpha.linum +
+                                 Centroceras.Ceramium + Cladophora.columbiana + Cryptosiphonia.wooddii + Costaria.costata +
+                                 Cumagloia.andersonii + Erythrophyllum.delessrioides +	Endocladia.muricata	+
+                                 Fucus.gardneri +	Halosaccion.glandiforme	+ Pyropia.spp	+ Polysiphonia.spp +
+                                 Ptilota.spp +	Cryptopluera.spp + Odonthalia.floccosa +	Microcladia.borealis +	Mazzaella.splendens +
+                                 Mazzaella.flaccida	+ Mazzaella.oregona +	Neorhodomela.larix + Odanthalia.washingtoniensis +Scytosiphon.lomentaria	
+                               + Osmundea.spectabilis	+ Ulva.spp + Plocamium.pacificum + Smithura.naiadum + Mastocarpus	+ Farlowia.mollis	+
+                                 Savoiea.robusta +	Palmaria.hecatensis	+ Melobesia.mediocris +	Leathesia.marina + Callithamnion.pikeanum	+
+                                 Laminara.setchellii + Schizymenia.pacifica),
+                 macrophytes = (AdjSurfgrassCover + macroalgae), #includes phyllospadix & macroalgae
+                 macroCCA = (macroalgae + allCCA), #includes macroalgae and CCA
+                 consumers = (Chthamalus +	Semibalanus.cariosus +	Balanus.nibulis	+ Balanus.glandula +
+                                Pollicipes.polymerus +	tube.worm	+ Ophlitaspongia.pennata + Halichondria +	
+                                Haliclona.permollis	+ Anthropluera.elegantissima	+ Anthropluera.xanthogrammica	+ 
+                                Urticina.coriacea	+ Epiactis.prolifera +Anthopleura.artemisia	+ Stylantheca.spp),
+                 #includes all consumers (no mytilus)
+                 allconsumers = (consumers + AdjMusselCover), #consumers and mytilus
+                 prodphyllodom = (macroalgae - (consumers + AdjMusselCover)), #producer dominance for phyllo model (so subtract mytilus too)
+                 allproddom = (macrophytes - allconsumers)) %>%#prod dominance with foundation spp
+  dplyr::select(PoolID,Foundation_spp,Removal_Control,Before_After,AdjMusselCover, AdjSurfgrassCover, MusselCover, SurfgrassCover,allCCA, macroalgae,macrophytes, macroCCA,
+                consumers,allconsumers,  prodphyllodom, allproddom)
+
+#write.csv(Summarizedgroups,file="Data/TPSessileCommunityMetrics.csv")
+
+#Change in foundation species cover
+Funsppcover<- Communitymetrics%>%
+  filter(Before_After != 'Immediate') %>%
+  dplyr::group_by(PoolID,Foundation_spp, Removal_Control) %>%
+  summarise(Mytilusdelta = -1*(MusselCover[Before_After == 'After'] - MusselCover[Before_After == 'Before']),
+            Phyllodelta = -1*(SurfgrassCover[Before_After == 'After'] - SurfgrassCover[Before_After == 'Before']))
+
+
+PP<-TidePooldes %>%
+  dplyr::group_by(PoolID,Removal_Control) %>%
+  dplyr::summarise(SAVav = mean(SAtoV), #ave between before and after since SA/V changed with fspp removal
+                   THav = mean(TideHeight),SAav=mean(SurfaceArea),Vav=mean(Vol),Depthav=mean(MaxDepth),
+                   loggerdepth=mean(LoggerDepth)) #tide height didn't change 
+
+PP$PoolID<-as.factor(PP$PoolID)
+Funsppcover$PoolID<-as.factor(Funsppcover$PoolID)
+Funsppandpp<-left_join(Funsppcover,PP)
+#write.csv(Funsppandpp, file="Data/Fspplossandphysicalparameters.csv")
