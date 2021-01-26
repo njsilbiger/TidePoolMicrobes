@@ -31,8 +31,6 @@ Nutrients<-read_csv("Data/Biogeochem/RawNutrientData.csv")
 CarbChem<-read_csv("Data/Biogeochem/ChemData.csv")
 Salinity<-read_csv("Data/Biogeochem/SampleSalinityData_Adjusted.csv")
 TA<- read_csv("Data/Biogeochem/TASamples_Adjusted.csv")
-
-
 ## bring in pH calibration files
 pHcalib<-read.csv('Data/Biogeochem/SummerTrispHcalibration.csv')
 
