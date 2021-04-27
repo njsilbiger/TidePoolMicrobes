@@ -1,4 +1,4 @@
-# TidePoolMicrobes
+# Tide Pool Microbes
 Microbial communities of mussel, surfgrass, and removal Oregon tide pools at Otter Rock Marine Reserve
 
 Contents
