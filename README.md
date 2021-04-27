@@ -1,10 +1,12 @@
 # TidePoolMicrobes
-Microbial communities of OR tide pools
+Microbial communities of mussel, surfgrass, and removal Oregon tide pools at Otter Rock Marine Reserve
 
 Contents
 
 **[Data](https://github.com/jenniferfields/TidePoolMicrobes/tree/master/Data)**
+
 **[Protocols](https://github.com/jenniferfields/TidePoolMicrobes/tree/master/Protocols)**
+
 **[Scripts](https://github.com/jenniferfields/TidePoolMicrobes/tree/master/Scripts)**
 
 
