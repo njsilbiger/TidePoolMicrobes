@@ -43,5 +43,5 @@ Contains all clean and raw data from project.
 	*	[Physical parameter measurements](https://github.com/jenniferfields/TidePoolMicrobes/blob/master/Data/PoolPhysicalParameters/TidePoolDes.csv)
 	*	Other data files are needed to run script
 
-7. [Microbe datasets we edited for merging with rest of data](https://github.com/jenniferfields/TidePoolMicrobes/tree/master/Data/Microbes_withnotes)
+7. [Microbe datasets we edited ID codes to be consistent with the chemistry data](https://github.com/jenniferfields/TidePoolMicrobes/tree/master/Data/Microbes_withnotes)
 
