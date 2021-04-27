@@ -20,7 +20,7 @@ Contains all clean and raw data from project.
 	* [Integrated NEP and NEC](https://github.com/jenniferfields/TidePoolMicrobes/blob/master/Data/Biogeochem/Integratedtime1thru4or5necnep.csv) - calculated net ecosystem production and net ecosystem calcification over the low tide period (Time 1-4/5)
 	*  [NEP and NEC for last time point](https://github.com/jenniferfields/TidePoolMicrobes/blob/master/Data/Biogeochem/MicrobesTime4and5NECNEP.csv) - NEP and NEC for only last time point of the series (either time point 4 or time point 5)
 	* [Microbe Biogeochm](https://github.com/jenniferfields/TidePoolMicrobes/blob/master/Data/Biogeochem/MicrobeCarbChem.csv) - Contains all carbonate and biogeochemistry over the microbe sampling time points
-		* Columns to use: Dissolved oxygen (DO) (mg/L & %), Conductivity, Salinity, PO_umol_L, NN_umol_L, NH4_umol_L, pH_insitu (this is the corrected pH to use), CO2, fCO2, pCO2, HCO3, CO3, DIC, ALK, OmegaAragonite, OmegaCalcite, TA_NormSal & DIC_Norm (normalized to salinity in lab)
+		* Columns to use: Dissolved oxygen (DO) (mg/L & %), Conductivity, Salinity, PO_umol_L, NN_umol_L, NH4_umol_L, pH_insitu (this is the corrected pH to use), CO2, fCO2, pCO2, HCO3, CO3, DIC, ALK, OmegaAragonite, OmegaCalcite, TA_NormSal & DIC_Norm (normalized to salinity in lab), [rest of columns were used to calculate these components]
 	*  [NEP and NEC for last time point](https://github.com/jenniferfields/TidePoolMicrobes/blob/master/Data/Biogeochem/MicrobesTime4and5NECNEP.csv) - NEP and NEC for only last time point of the series (either time point 4 or time point 5)
 	*  Other data files are needed to run script
   
