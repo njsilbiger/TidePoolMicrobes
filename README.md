@@ -8,10 +8,10 @@ Contents
 Contains all protocols for [biogeochemistry and microbial sampling](https://github.com/jenniferfields/TidePoolMicrobes/blob/master/Protocols/TidePoolSampling_SOP.md), [community composition](https://github.com/jenniferfields/TidePoolMicrobes/blob/master/Protocols/CommunityComposition_SOP.md), and [tide pool volume](https://github.com/jenniferfields/TidePoolMicrobes/blob/master/Protocols/Dye_Method_Protocol.md)
 
 **[Scripts](https://github.com/jenniferfields/TidePoolMicrobes/tree/master/Scripts)**
-* [Biogeochemistry Script](https://github.com/jenniferfields/TidePoolMicrobes/blob/master/Scripts/MicrobeCommBiogeochem.R) - script for processing all carbonate and biogeochemistry data and calculation of net ecosystem production and calcification
-* [Community Composition Script](https://github.com/jenniferfields/TidePoolMicrobes/blob/master/Scripts/TidePoolCommunityComposition.R) - script for processing community composition data for sessile and mobile organisms
-* [Tide Pool Physical Parameters Script](https://github.com/jenniferfields/TidePoolMicrobes/blob/master/Scripts/tidepoolphysicalparameters.R) - script for processing physical parameters of the tide pools  
-* [Combined microbe dataset](https://github.com/jenniferfields/TidePoolMicrobes/blob/master/Scripts/combinedmicrobedatasets.R) - script to combine fDOM and FCM datasets
+1. [Biogeochemistry Script](https://github.com/jenniferfields/TidePoolMicrobes/blob/master/Scripts/MicrobeCommBiogeochem.R) - script for processing all carbonate and biogeochemistry data and calculation of net ecosystem production and calcification
+2. [Community Composition Script](https://github.com/jenniferfields/TidePoolMicrobes/blob/master/Scripts/TidePoolCommunityComposition.R) - script for processing community composition data for sessile and mobile organisms
+3. [Tide Pool Physical Parameters Script](https://github.com/jenniferfields/TidePoolMicrobes/blob/master/Scripts/tidepoolphysicalparameters.R) - script for processing physical parameters of the tide pools  
+4. [Combined microbe dataset](https://github.com/jenniferfields/TidePoolMicrobes/blob/master/Scripts/combinedmicrobedatasets.R) - script to combine fDOM and FCM datasets
 
 **[Data](https://github.com/jenniferfields/TidePoolMicrobes/tree/master/Data)**
 Contains all clean and raw data from project.
