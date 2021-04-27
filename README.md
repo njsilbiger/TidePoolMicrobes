@@ -32,13 +32,13 @@ Contains all clean and raw data from project.
 	*	[Mobile species list](https://github.com/jenniferfields/TidePoolMicrobes/blob/master/Data/CommunityComposition/Mobilespplist.csv) - all mobile species 
 
 	*	[Mobile functional groups](https://github.com/jenniferfields/TidePoolMicrobes/blob/master/Data/CommunityComposition/Mobilespplist.csv) - mobile data switched to long format with functional group attached to each species on the list
-	* Others are the raw datasets
+	* Other data files are the raw datasets
 4. *[Light and Temperature Logger Data](https://github.com/jenniferfields/TidePoolMicrobes/tree/master/Data/LightandTemp)*
 	* [Temp and light by hour](https://github.com/jenniferfields/TidePoolMicrobes/blob/master/Data/LightandTemp/LightandTempbysamplinghour.csv) - Temperature and light values from HOBO® Pendant loggers averaged for each hour of sampling (n = 3-4 values averaged)
-	* Others are for script to run
+	* Other data files are needed to run script
 5. *[Microbe Data](https://github.com/jenniferfields/TidePoolMicrobes/tree/master/Data/Microbe_Clean)*
 	* [fDOM and FCM data](https://github.com/jenniferfields/TidePoolMicrobes/blob/master/Data/Microbe_Clean/combined_FCMandfDOMdata.csv) - Combined fDOM and FCM datasets
-	* Others are fDOM and FCM as separate datasets 
+	* Other data files are fDOM and FCM as separate datasets 
 6. *[Pool Physical Parameters Data](https://github.com/jenniferfields/TidePoolMicrobes/tree/master/Data/PoolPhysicalParameters)*
 	*	[Physical parameter measurements](https://github.com/jenniferfields/TidePoolMicrobes/blob/master/Data/PoolPhysicalParameters/TidePoolDes.csv)
 	*	Other data files are needed to run script
