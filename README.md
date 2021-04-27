@@ -3,13 +3,17 @@ Microbial communities of mussel, surfgrass, and removal Oregon tide pools at Ott
 
 Contents
 
-**[Data](https://github.com/jenniferfields/TidePoolMicrobes/tree/master/Data)**
-
 **[Protocols](https://github.com/jenniferfields/TidePoolMicrobes/tree/master/Protocols)**
 
+Contains all protocols for biogeochemistry & microbial sampling and community composition
+
 **[Scripts](https://github.com/jenniferfields/TidePoolMicrobes/tree/master/Scripts)**
+* [Biogeochemistry Script](https://github.com/jenniferfields/TidePoolMicrobes/blob/master/Scripts/MicrobeCommBiogeochem.R) - script for processing all carbonate and biogeochemistry data and calculation of net ecosystem production and calcification
+* [Community Composition Script](https://github.com/jenniferfields/TidePoolMicrobes/blob/master/Scripts/TidePoolCommunityComposition.R) - script for processing community composition data for sessile and mobile organisms
+* [Tide Pool Physical Parameters Script](https://github.com/jenniferfields/TidePoolMicrobes/blob/master/Scripts/tidepoolphysicalparameters.R) - script for processing physical parameters of the tide pools  
+* [Combined microbe dataset](https://github.com/jenniferfields/TidePoolMicrobes/blob/master/Scripts/combinedmicrobedatasets.R) - script to combine fDOM and FCM datasets
 
-
+**[Data](https://github.com/jenniferfields/TidePoolMicrobes/tree/master/Data)**
 Contains all clean and raw data from project. Within this folder there are four folders for data from 
 1. *[Biogeochemistry Data](https://github.com/jenniferfields/TidePoolMicrobes/tree/master/Data/Biogeochem)*
 
