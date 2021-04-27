@@ -1,11 +1,13 @@
 # Tide Pool Microbes
 Microbial communities of mussel, surfgrass, and removal Oregon tide pools at Otter Rock Marine Reserve
 
-Before period (June-July 2019) 
+**Before period (June-July 2019)**
 * community composition June 5-16 2019
 * water sampling July 8-12 2019
-Removal of foundation species (July 15-17 2019)
-After period (August 2019)
+
+**Removal of foundation species (July 15-17 2019)**
+
+**After period (August 2019)**
 * water sampling August 5-9 2019
 * community composition Aug 12-16 2019
 
