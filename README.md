@@ -14,7 +14,7 @@ Contains all protocols for biogeochemistry & microbial sampling and community co
 * [Combined microbe dataset](https://github.com/jenniferfields/TidePoolMicrobes/blob/master/Scripts/combinedmicrobedatasets.R) - script to combine fDOM and FCM datasets
 
 **[Data](https://github.com/jenniferfields/TidePoolMicrobes/tree/master/Data)**
-Contains all clean and raw data from project. Within this folder there are four folders for data from 
+Contains all clean and raw data from project.
 1. *[Biogeochemistry Data](https://github.com/jenniferfields/TidePoolMicrobes/tree/master/Data/Biogeochem)*
 
 	* [Integrated NEP and NEC](https://github.com/jenniferfields/TidePoolMicrobes/blob/master/Data/Biogeochem/Integratedtime1thru4or5necnep.csv) - calculated net ecosystem production and net ecosystem calcification over the low tide period (Time 1-4/5)
