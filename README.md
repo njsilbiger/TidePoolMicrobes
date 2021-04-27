@@ -5,7 +5,7 @@ Contents
 
 **[Protocols](https://github.com/jenniferfields/TidePoolMicrobes/tree/master/Protocols)**
 
-Contains all protocols for biogeochemistry & microbial sampling and community composition
+Contains all protocols for [biogeochemistry and microbial sampling](https://github.com/jenniferfields/TidePoolMicrobes/blob/master/Protocols/TidePoolSampling_SOP.md), [community composition](https://github.com/jenniferfields/TidePoolMicrobes/blob/master/Protocols/CommunityComposition_SOP.md), and [tide pool volume](https://github.com/jenniferfields/TidePoolMicrobes/blob/master/Protocols/Dye_Method_Protocol.md)
 
 **[Scripts](https://github.com/jenniferfields/TidePoolMicrobes/tree/master/Scripts)**
 * [Biogeochemistry Script](https://github.com/jenniferfields/TidePoolMicrobes/blob/master/Scripts/MicrobeCommBiogeochem.R) - script for processing all carbonate and biogeochemistry data and calculation of net ecosystem production and calcification
