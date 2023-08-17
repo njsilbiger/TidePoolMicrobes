@@ -2,8 +2,7 @@
 ## By: Jenn Fields
 ## Last updated: 12.23.2020
 ###########################
-## clear workspace
-rm(list=ls())
+
 ####load libraries####
 library(seacarb) # for carbonate chem
 library(oce) # for carbonate chem
