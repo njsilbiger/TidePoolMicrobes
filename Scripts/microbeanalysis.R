@@ -10,6 +10,7 @@ library(tidyverse)
 library(janitor)
 library(ggtext)
 library(patchwork)
+library(calecopal)
 
 
 ## read in the data ####
@@ -304,6 +305,19 @@ mean_rates<-data_rates %>%
   summarise(mean_value = mean(value, na.rm = TRUE),
             se_value = sd(value, na.rm = TRUE)/sqrt(n()))
 
+
+## with only the control pools, but across both timepoints
+mean_rates_control<-data_rates %>%
+  mutate(before_after = factor(before_after, levels = c("Before","After")))%>%
+  filter(removal_control != "Removal")%>%
+  pivot_longer(cols= do_mg_l_rate:auto_rate) %>%
+  # filter(!pool_id %in% 1:16)%>% ## uneven sample sizes... only 16 pools have everything
+  group_by(foundation_spp, day_night, name)%>%
+  summarise(mean_value = mean(value, na.rm = TRUE),
+            se_value = sd(value, na.rm = TRUE)/sqrt(n()))
+
+
+
 # rename the foundation species for the ocean to have one group for mussels and one for phyllo for easier plotting
 myt_ocean<-mean_rates %>%
   filter(foundation_spp == "Ocean") %>%
@@ -351,6 +365,67 @@ night_plot<-mean_rates %>%
 night_plot
 
 
+
+
 ### just look at controls in the after period 
-mean_rates %>%
-  filter(removal_control == "Control", before_after == "After")
+#averaged across both the before and after period for the controls
+mean_rates_control %>%
+  mutate(name = case_when(name  == "auto_rate"~ "Autotrophic pico counts uL-1 hr-1",
+                          name == "do_mg_l_rate"~ "DO mg L-1 hr-1",
+                          name == "hetero_rate"~"Heterotrophic counts uL-1 hr-1",
+                          name == "nh4_rate"~"NH4 umol L-1 hr-1",
+                          name == "nn_rate"~"NN umol L-1 hr-1",
+                          name == "ph_rate"~ "pH unit hr-1",
+                          name == "po_rate"~"PO umol L-1 hr-1",
+                          name == "syn_rate"~"Synechoococcus counts uL-1 hr-1",
+                          name == "temp_rate"~"Temperature (deg C) hr-1"))%>%
+  mutate(name = factor(name, levels=c("Heterotrophic counts uL-1 hr-1","Synechoococcus counts uL-1 hr-1",
+                                      "Autotrophic pico counts uL-1 hr-1","NN umol L-1 hr-1",
+                                      "NH4 umol L-1 hr-1","PO umol L-1 hr-1",
+                                      "DO mg L-1 hr-1", "pH unit hr-1", "Temperature (deg C) hr-1")))%>%
+#  filter(removal_control %in% c("Control","Ocean"), before_after == "After") %>%
+  ggplot(aes(x = day_night, color = foundation_spp, y = mean_value, group = foundation_spp))+
+  geom_hline(yintercept = 0, lty = 2)+
+  geom_point()+
+  geom_errorbar(aes(x = day_night, y = mean_value, ymin = mean_value-se_value, ymax = mean_value+se_value), width = 0.01)+
+  geom_line()+
+  scale_color_manual(values = c("grey30","#79ACBD","#79B38F"))+
+  labs(x = "",
+       y = "Mean rate (unit per hour)",
+       color = "")+
+  facet_wrap(~name, scales = "free", ncol = 3)+
+  theme_bw()
+
+ggsave(here("Output","mean_rates_2mo.png"), width = 8, height = 8)
+
+
+## just the after period alone
+mean_rates%>%
+  mutate(name = case_when(name  == "auto_rate"~ "Autotrophic pico counts uL-1 hr-1",
+                          name == "do_mg_l_rate"~ "DO mg L-1 hr-1",
+                          name == "hetero_rate"~"Heterotrophic counts uL-1 hr-1",
+                          name == "nh4_rate"~"NH4 umol L-1 hr-1",
+                          name == "nn_rate"~"NN umol L-1 hr-1",
+                          name == "ph_rate"~ "pH unit hr-1",
+                          name == "po_rate"~"PO umol L-1 hr-1",
+                          name == "syn_rate"~"Synechoococcus counts uL-1 hr-1",
+                          name == "temp_rate"~"Temperature (deg C) hr-1"))%>%
+  mutate(name = factor(name, levels=c("Heterotrophic counts uL-1 hr-1","Synechoococcus counts uL-1 hr-1",
+                                      "Autotrophic pico counts uL-1 hr-1","NN umol L-1 hr-1",
+                                      "NH4 umol L-1 hr-1","PO umol L-1 hr-1",
+                                      "DO mg L-1 hr-1", "pH unit hr-1", "Temperature (deg C) hr-1")))%>%
+  filter(removal_control %in% c("Control","Ocean"), before_after == "After") %>%
+  ggplot(aes(x = day_night, color = foundation_spp, y = mean_value, group = foundation_spp))+
+  geom_hline(yintercept = 0, lty = 2)+
+  geom_point()+
+  geom_errorbar(aes(x = day_night, y = mean_value, ymin = mean_value-se_value, ymax = mean_value+se_value), width = 0.01)+
+  geom_line()+
+  scale_color_manual(values = c("grey30","#79ACBD","#79B38F"))+
+  labs(x = "",
+       y = "Mean rate (unit per hour)",
+       color = "")+
+  facet_wrap(~name, scales = "free", ncol = 3)+
+  theme_bw()
+
+ggsave(here("Output","mean_rates_1mo.png"), width = 8, height = 8)
+
