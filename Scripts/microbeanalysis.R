@@ -433,15 +433,16 @@ ggsave(here("Output","mean_rates_1mo.png"), width = 8, height = 8)
 ### PCA of fDOM from just the control and after period ####
 
 pca_after<-data_all %>%
-  filter(removal_control != "Removal", before_after == "After", time_point==4) %>%
+  filter(removal_control != "Removal", before_after == "After") %>%
   filter(tryptophan_like < 1.3)%>% # there is a big mussel outlier
   ungroup()%>%
-  dplyr::select(foundation_spp, day_night, ultra_violet_humic_like, marine_humic_like, visible_humic_like, tryptophan_like, tyrosine_like, phenylalanine_like)%>%
-  #dplyr::select(foundation_spp, day_night,m_c, bix, hix, fi, ultra_violet_humic_like, marine_humic_like, visible_humic_like, tryptophan_like, tyrosine_like, phenylalanine_like)%>%
+  mutate(time_point = factor(time_point))%>%
+  #dplyr::select(foundation_spp, day_night, time_point, ultra_violet_humic_like, marine_humic_like, visible_humic_like, tryptophan_like, tyrosine_like, phenylalanine_like)%>%
+  dplyr::select(foundation_spp, day_night,time_point, m_c, bix, hix, fi,ultra_violet_humic_like, marine_humic_like, visible_humic_like, tryptophan_like, tyrosine_like, phenylalanine_like)%>%
   drop_na()
 
 # run a pca
-pca<-prcomp(pca_after[,3:8], scale. = TRUE, center = TRUE)
+pca<-prcomp(pca_after[,4:13], scale. = TRUE, center = TRUE)
 
 # calculate percent explained by each PC
 perc.explained<-round(100*pca$sdev/sum(pca$sdev),1)
@@ -457,7 +458,7 @@ data_pca_after<-pca_after  %>%
     bind_cols(PC_scores)
 
 p1<-data_pca_after %>%
-  ggplot(aes(x = PC1, y = PC2, color = foundation_spp, shape = day_night))+
+  ggplot(aes(x = PC1, y = PC2, color = foundation_spp, shape = time_point))+
   coord_cartesian(xlim = c(-12, 12), ylim = c(-10, 10)) +
   # scale_shape_manual(values = c(1, 22,15,16))+
   scale_color_manual(values = c("grey30","#79ACBD","#79B38F"))+
@@ -465,11 +466,12 @@ p1<-data_pca_after %>%
     geom_hline(yintercept = 0, lty = 2)+
   geom_vline(xintercept = 0, lty = 2)+
   ggforce::geom_mark_ellipse(
-    aes(fill = foundation_spp, label = paste(day_night, foundation_spp), color =foundation_spp),
+    aes(fill = foundation_spp, label = paste(time_point), color =foundation_spp),
     alpha = .35, show.legend = FALSE,  label.buffer = unit(1, "mm"), con.cap=0, tol = 0.05)+
   geom_point(size = 2) +
   labs(
-    x = paste0("PC1 ","(",perc.explained[1],"%)"),
+    x = "",
+    #x = paste0("PC1 ","(",perc.explained[1],"%)"),
     y = paste0("PC2 ","(",perc.explained[2],"%)"))+
   theme_bw()+
   theme(legend.position = "none",
@@ -483,7 +485,7 @@ p1<-data_pca_after %>%
         strip.background = element_blank(),
         #      strip.text = element_blank()
   )+
-  facet_wrap(~day_night)
+  facet_wrap(day_night~foundation_spp)
 
 # loadings
 p2<-PC_loadings %>%
@@ -496,7 +498,7 @@ p2<-PC_loadings %>%
   coord_cartesian(xlim = c(-12, 12), ylim = c(-10, 10)) +
   labs(
     y = "",
-    x = "")+
+    x = paste0("PC1 ","(",perc.explained[1],"%)"))+
   #y = paste0("PC2 ","(",perc.explained_both[2],"%)"))+
   #  scale_color_manual(values = wes_palette("Darjeeling1"))+
   theme_bw()+
@@ -510,5 +512,6 @@ p2<-PC_loadings %>%
         axis.text = element_text(size = 16))
 
 
-p1/p2
+
+p1/plot_spacer()/p2+plot_layout(heights = c(2,-0.1, 1))
 ggsave(here("Output","pca_fdom.png"), width = 8, height = 8)
