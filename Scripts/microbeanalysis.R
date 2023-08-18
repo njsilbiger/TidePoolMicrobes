@@ -24,7 +24,7 @@ head(microbedata)
 head(biogeodata)
 
 data_all<-left_join(biogeodata, microbedata, by = "Id_code") %>%
-  dplyr::select(PoolID, Foundation_spp, Day_Night, Before_After, Removal_Control, Group, Time_Point,
+  dplyr::select(PoolID, Foundation_spp, Day_Night, Sampling_group, Before_After, Removal_Control, Group, Time_Point,
          Sampling_Day, Sampling_time, DO_mg_L, Salinity, Temp.pool,PO_umol_L, NN_umol_L,
          NH4_umol_L, ph = pH_insitu, DIC, ALK, OmegaAragonite, `Heterotrophic Bacterioplankton/μL`,`Synechoococcus/μL`,
          `Autotrophic PicoEukaryotes/μL`,`M:C`,BIX,HIX,FI, `Ultra Violet Humic-like`,
@@ -39,7 +39,7 @@ data_all<-left_join(biogeodata, microbedata, by = "Id_code") %>%
 
 data_all<-data_all %>%
 #  filter(sampling_day !=ymd("2019-07-11"), time_point != 5)%>%
-  group_by(before_after, time_point, day_night)%>%
+  group_by(before_after, time_point, day_night, sampling_group)%>%
   mutate(do_change = do_mg_l - do_mg_l[foundation_spp == "Ocean"],
          temp_change = temp_pool - temp_pool[foundation_spp == "Ocean"],
          po_change = po_umol_l - po_umol_l[foundation_spp == "Ocean"],
@@ -235,3 +235,122 @@ p2<-PC_loadings %>%
 
 
 p1/p2
+
+### calculate growth and uptake rates ####
+#### There is a mix between samples that were collected at timepoint 4 and 5 as the endpoint and most missing samples are from the "before" period.
+
+# Before Day nutrients were collected at 1,4, and 5 and microbes at 1,5
+# Before night, nutrients are 1,4, and microbes at 1,5
+# After day and night both sets are at 1 and 4
+
+data_rates_before<-data_all%>%
+  ungroup()%>%
+  mutate(sampling_datetime = mdy_hms(paste(sampling_day, sampling_time))) %>% 
+  filter(before_after == "Before")%>%
+  reframe(difftime_hours = as.numeric(sampling_datetime[time_point==4]-sampling_datetime[time_point==1]),
+          difftime_hours5 = as.numeric(sampling_datetime[time_point==5]-sampling_datetime[time_point==1]),
+          do_mg_l_rate = (do_mg_l[time_point==4]-do_mg_l[time_point == 1])/difftime_hours,
+          temp_rate = (temp_pool[time_point==4]-temp_pool[time_point == 1])/difftime_hours,
+          po_rate = (po_umol_l[time_point==4]-po_umol_l[time_point == 1])/difftime_hours,
+          nn_rate = (nn_umol_l[time_point==4]-nn_umol_l[time_point == 1])/difftime_hours,
+          nh4_rate = (nh4_umol_l[time_point==4]-nh4_umol_l[time_point == 1])/difftime_hours,
+          ph_rate = (ph[time_point==4]-ph[time_point == 1])/difftime_hours,
+          hetero_rate = (heterotrophic_bacterioplankton_m_l[time_point==5]-heterotrophic_bacterioplankton_m_l[time_point == 1])/difftime_hours5,
+          syn_rate = (synechoococcus_m_l[time_point==5]-synechoococcus_m_l[time_point == 1])/difftime_hours5,
+          auto_rate = (autotrophic_pico_eukaryotes_m_l[time_point==5]-autotrophic_pico_eukaryotes_m_l[time_point == 1])/difftime_hours5,
+          .by = c(foundation_spp, removal_control, day_night, pool_id))%>%
+  drop_na(foundation_spp) %>%
+  mutate(before_after = "Before")
+
+data_rates_after<-data_all%>%
+  ungroup()%>%
+  mutate(sampling_datetime = mdy_hms(paste(sampling_day, sampling_time))) %>% 
+  filter(before_after == "After")%>%
+  reframe(difftime_hours = as.numeric(sampling_datetime[time_point==4]-sampling_datetime[time_point==1]),
+          do_mg_l_rate = (do_mg_l[time_point==4]-do_mg_l[time_point == 1])/difftime_hours,
+          temp_rate = (temp_pool[time_point==4]-temp_pool[time_point == 1])/difftime_hours,
+          po_rate = (po_umol_l[time_point==4]-po_umol_l[time_point == 1])/difftime_hours,
+          nn_rate = (nn_umol_l[time_point==4]-nn_umol_l[time_point == 1])/difftime_hours,
+          nh4_rate = (nh4_umol_l[time_point==4]-nh4_umol_l[time_point == 1])/difftime_hours,
+          ph_rate = (ph[time_point==4]-ph[time_point == 1])/difftime_hours,
+          hetero_rate = (heterotrophic_bacterioplankton_m_l[time_point==4]-heterotrophic_bacterioplankton_m_l[time_point == 1])/difftime_hours,
+          syn_rate = (synechoococcus_m_l[time_point==4]-synechoococcus_m_l[time_point == 1])/difftime_hours,
+          auto_rate = (autotrophic_pico_eukaryotes_m_l[time_point==4]-autotrophic_pico_eukaryotes_m_l[time_point == 1])/difftime_hours,
+          .by = c(foundation_spp, removal_control, day_night, pool_id, sampling_group))%>%
+  drop_na(foundation_spp)%>%
+  mutate(before_after = "After")
+
+# bring before and after together
+data_rates <-
+  bind_rows(data_rates_before, data_rates_after) %>%
+  mutate(nh4_rate = ifelse(nh4_rate>10, NA, nh4_rate)) # remove crazy Nh4 outlier
+
+# make a bunch of boxplots
+data_rates %>%
+  mutate(before_after = factor(before_after, levels = c("Before","After")))%>%
+  pivot_longer(cols= do_mg_l_rate:auto_rate) %>%
+  dplyr::select(-difftime_hours, -difftime_hours5, -sampling_group) %>%
+  ggplot(aes(x = before_after, y = value, fill = removal_control))+
+  geom_hline(yintercept = 0, lty = 2)+
+  geom_boxplot()+
+  facet_wrap(name*foundation_spp~day_night, scales = "free")
+
+## Make some reaction norms
+mean_rates<-data_rates %>%
+  mutate(before_after = factor(before_after, levels = c("Before","After")))%>%
+  pivot_longer(cols= do_mg_l_rate:auto_rate) %>%
+ # filter(!pool_id %in% 1:16)%>% ## uneven sample sizes... only 16 pools have everything
+  group_by(foundation_spp, removal_control, day_night, before_after, name)%>%
+  summarise(mean_value = mean(value, na.rm = TRUE),
+            se_value = sd(value, na.rm = TRUE)/sqrt(n()))
+
+# rename the foundation species for the ocean to have one group for mussels and one for phyllo for easier plotting
+myt_ocean<-mean_rates %>%
+  filter(foundation_spp == "Ocean") %>%
+  mutate(foundation_spp = "Mytilus")
+
+phylo_ocean<-mean_rates %>%
+  filter(foundation_spp == "Ocean") %>%
+  mutate(foundation_spp = "Phyllospadix")
+
+# make a set of reaction norm plots for the day
+day_plot<-mean_rates %>%
+  filter(foundation_spp != "Ocean")%>%
+  bind_rows(myt_ocean) %>%
+  bind_rows(phylo_ocean) %>%
+  filter(day_night == "Day")%>%
+  ggplot(aes(x = before_after, y = mean_value, color = removal_control, group = removal_control))+
+  geom_hline(yintercept = 0, lty = 2)+
+  geom_point()+
+  geom_errorbar(aes(x = before_after, y = mean_value, ymin = mean_value-se_value, ymax = mean_value+se_value), width = 0.01)+
+  geom_line()+
+  labs(x = "time period",
+       y = "Rate per hour")+
+  facet_wrap(name~foundation_spp, scales = "free", ncol = 2)+
+  theme_bw()
+
+day_plot
+
+# make a set of reaction norm plots for the night
+
+night_plot<-mean_rates %>%
+  filter(foundation_spp != "Ocean")%>%
+  bind_rows(myt_ocean) %>%
+  bind_rows(phylo_ocean) %>%
+  filter(day_night == "Night")%>%
+  ggplot(aes(x = before_after, y = mean_value, color = removal_control, group = removal_control))+
+  geom_hline(yintercept = 0, lty = 2)+
+  geom_point()+
+  geom_errorbar(aes(x = before_after, y = mean_value, ymin = mean_value-se_value, ymax = mean_value+se_value), width = 0.01)+
+  geom_line()+
+  labs(x = "time period",
+       y = "Rate per hour")+
+  facet_wrap(name~foundation_spp, scales = "free", ncol = 2)+
+  theme_bw()
+
+night_plot
+
+
+### just look at controls in the after period 
+mean_rates %>%
+  filter(removal_control == "Control", before_after == "After")
