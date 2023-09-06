@@ -265,7 +265,9 @@ data_rates_before<-data_all%>%
 
 data_rates_after<-data_all%>%
   ungroup()%>%
-  mutate(sampling_datetime = mdy_hms(paste(sampling_day, sampling_time))) %>% 
+  mutate(sampling_datetime = mdy_hms(paste(sampling_day, sampling_time)),
+         humics = ultra_violet_humic_like+marine_humic_like+ visible_humic_like,
+         prot = tryptophan_like + tyrosine_like + phenylalanine_like) %>% 
   filter(before_after == "After")%>%
   reframe(difftime_hours = as.numeric(sampling_datetime[time_point==4]-sampling_datetime[time_point==1]),
           do_mg_l_rate = (do_mg_l[time_point==4]-do_mg_l[time_point == 1])/difftime_hours,
@@ -277,7 +279,9 @@ data_rates_after<-data_all%>%
           hetero_rate = (heterotrophic_bacterioplankton_m_l[time_point==4]-heterotrophic_bacterioplankton_m_l[time_point == 1])/difftime_hours,
           syn_rate = (synechoococcus_m_l[time_point==4]-synechoococcus_m_l[time_point == 1])/difftime_hours,
           auto_rate = (autotrophic_pico_eukaryotes_m_l[time_point==4]-autotrophic_pico_eukaryotes_m_l[time_point == 1])/difftime_hours,
-          .by = c(foundation_spp, removal_control, day_night, pool_id, sampling_group))%>%
+          humics_rate = (humics[time_point==4] - humics[time_point == 1])/difftime_hours,
+          prot_rate = (prot[time_point==4] - prot[time_point == 1])/difftime_hours,
+          .by = c(foundation_spp, removal_control, day_night, pool_id, sampling_group),)%>%
   drop_na(foundation_spp)%>%
   mutate(before_after = "After")
 
@@ -299,7 +303,7 @@ data_rates %>%
 ## Make some reaction norms
 mean_rates<-data_rates %>%
   mutate(before_after = factor(before_after, levels = c("Before","After")))%>%
-  pivot_longer(cols= do_mg_l_rate:auto_rate) %>%
+  pivot_longer(cols= c(do_mg_l_rate:auto_rate, humics_rate,prot_rate)) %>%
  # filter(!pool_id %in% 1:16)%>% ## uneven sample sizes... only 16 pools have everything
   group_by(foundation_spp, removal_control, day_night, before_after, name)%>%
   summarise(mean_value = mean(value, na.rm = TRUE),
@@ -310,7 +314,7 @@ mean_rates<-data_rates %>%
 mean_rates_control<-data_rates %>%
   mutate(before_after = factor(before_after, levels = c("Before","After")))%>%
   filter(removal_control != "Removal")%>%
-  pivot_longer(cols= do_mg_l_rate:auto_rate) %>%
+  pivot_longer(cols= c(do_mg_l_rate:auto_rate, humics_rate,prot_rate)) %>%
   # filter(!pool_id %in% 1:16)%>% ## uneven sample sizes... only 16 pools have everything
   group_by(foundation_spp, day_night, name)%>%
   summarise(mean_value = mean(value, na.rm = TRUE),
@@ -378,11 +382,14 @@ mean_rates_control %>%
                           name == "ph_rate"~ "pH unit hr-1",
                           name == "po_rate"~"PO umol L-1 hr-1",
                           name == "syn_rate"~"Synechoococcus counts uL-1 hr-1",
-                          name == "temp_rate"~"Temperature (deg C) hr-1"))%>%
+                          name == "temp_rate"~"Temperature (deg C) hr-1",
+                          name  == "humics_rate"~"Humics",
+                          name == "prot_rate"~"Prot"))%>%
   mutate(name = factor(name, levels=c("Heterotrophic counts uL-1 hr-1","Synechoococcus counts uL-1 hr-1",
                                       "Autotrophic pico counts uL-1 hr-1","NN umol L-1 hr-1",
                                       "NH4 umol L-1 hr-1","PO umol L-1 hr-1",
-                                      "DO mg L-1 hr-1", "pH unit hr-1", "Temperature (deg C) hr-1")))%>%
+                                      "DO mg L-1 hr-1", "pH unit hr-1", "Temperature (deg C) hr-1",
+                                      "Humics","Prot")))%>%
 #  filter(removal_control %in% c("Control","Ocean"), before_after == "After") %>%
   ggplot(aes(x = day_night, color = foundation_spp, y = mean_value, group = foundation_spp))+
   geom_hline(yintercept = 0, lty = 2)+
@@ -409,11 +416,14 @@ mean_rates%>%
                           name == "ph_rate"~ "pH unit hr-1",
                           name == "po_rate"~"PO umol L-1 hr-1",
                           name == "syn_rate"~"Synechoococcus counts uL-1 hr-1",
-                          name == "temp_rate"~"Temperature (deg C) hr-1"))%>%
+                          name == "temp_rate"~"Temperature (deg C) hr-1",
+                          name  == "humics_rate"~"Humics",
+                          name == "prot_rate"~"Prot"))%>%
   mutate(name = factor(name, levels=c("Heterotrophic counts uL-1 hr-1","Synechoococcus counts uL-1 hr-1",
                                       "Autotrophic pico counts uL-1 hr-1","NN umol L-1 hr-1",
                                       "NH4 umol L-1 hr-1","PO umol L-1 hr-1",
-                                      "DO mg L-1 hr-1", "pH unit hr-1", "Temperature (deg C) hr-1")))%>%
+                                      "DO mg L-1 hr-1", "pH unit hr-1", "Temperature (deg C) hr-1",
+                                      "Humics","Prot")))%>%
   filter(removal_control %in% c("Control","Ocean"), before_after == "After") %>%
   ggplot(aes(x = day_night, color = foundation_spp, y = mean_value, group = foundation_spp))+
   geom_hline(yintercept = 0, lty = 2)+
