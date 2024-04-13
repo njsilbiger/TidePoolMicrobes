@@ -691,6 +691,8 @@ anova(lm(data = PoolRates_combined %>%
 
 ### Take a regression approach #####
 
+##### STOPPED HERE!####
+
 ## combine with community comp data
 
 Day_rates<-BenthicData %>%
