@@ -675,6 +675,20 @@ anova(lm(data = PoolRates_combined %>%
            filter(day_night == "Day",
                   before_after == "After",
                   mc_hr > -0.3), mc_hr~do_mg_m2_hr))
+
+PoolRates_combined %>%
+  filter(day_night == "Day",
+         before_after == "After",
+         mc_hr > -0.3) %>%
+  ggplot(aes(x =  tryp_raman_m2_hr, y = hetero_counts_m2_hr))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+anova(lm(data = PoolRates_combined %>%
+           filter(day_night == "Day",
+                  before_after == "After",
+                  mc_hr > -0.3), tryp_raman_m2_hr~hetero_counts_m2_hr))
+
 ### Take a regression approach #####
 
 ## combine with community comp data
