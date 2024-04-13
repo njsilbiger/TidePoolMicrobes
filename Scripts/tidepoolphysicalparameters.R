@@ -2,7 +2,7 @@
 ##By: Jenn Fields
 ##Last updated: 12.23.2020
 
-rm(list=ls()) #Clears the environment
+
 #load libraries
 library(tidyverse)
 library(factoextra)
@@ -61,3 +61,5 @@ PoolVolumes$Vol<- PoolVolumes$VolumeL * 0.001 #convert volume from L to m3
 Volumes<-PoolVolumes[, c("PoolID", "Before_After", "Vol")] #pull out the necessary columns for joining
 TidePooldes<-left_join(TidePooldes,Volumes) #joining with rest of physical parameters
 TidePooldes$SAtoV <- (TidePooldes$SurfaceArea/TidePooldes$Vol)  
+
+write_csv(TidePooldes, here("Data","Microbe_clean","TidePoolDescriptions.csv"))

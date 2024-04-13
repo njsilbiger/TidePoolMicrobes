@@ -3,7 +3,6 @@
 ##By: Jenn Fields
 ##Last updated: 4.26.2021
 
-rm(list=ls()) #Clears the environment
 
 #load libraries
 library(tidyverse)
@@ -45,7 +44,11 @@ Communitymetrics<-cbind(Sessiles$PoolID, Sessiles$Foundation_spp, Sessiles$Remov
 Communitymetrics <- Communitymetrics %>%
   rename(PoolID = "Sessiles$PoolID", Foundation_spp = "Sessiles$Foundation_spp",Removal_Control ="Sessiles$Removal_Control",
          Before_After ="Sessiles$Before_After",
-         MusselCover = "PercentSessile$Mytilus.californianus",SurfgrassCover = "PercentSessile$Phyllospadix.spp") %>% #mussel and surfgrass cover are not standardized to pool 
+         MusselCover = "PercentSessile$Mytilus.californianus",
+         SurfgrassCover = "PercentSessile$Phyllospadix.spp",
+         AdjSurfgrassCover = "Phyllospadix.spp", # these the standardized metrics,
+         AdjMusselCover = "Mytilus.californianus" # standardized values
+         ) %>% #mussel and surfgrass cover are not standardized to pool 
   dplyr::filter(Before_After != "Immediate")
 #rename joined columns
 
@@ -56,7 +59,7 @@ Communitymetrics <- Communitymetrics %>%
 SessilesFun<-Communitymetrics %>%
   dplyr::group_by(PoolID, Foundation_spp, Before_After, Removal_Control) %>%
   tidyr::pivot_longer(
-    cols = Mytilus.californianus:Stylantheca.spp, #leave out unadjusted surfgrass and mussel cover
+    cols = AdjMusselCover:Stylantheca.spp, #leave out unadjusted surfgrass and mussel cover
     names_to = "Species", #creates column with species in longformat
     values_to = "Cover", #adds column for % cover
     values_drop_na = TRUE
@@ -88,6 +91,7 @@ Summarizedgroups<-Communitymetrics %>%
   dplyr::filter(Before_After != "Immediate") %>%
   dplyr:: mutate(allCCA = (Crustose.coralline + Bosiella.spp + Corallina.spp + Corallina.vancouveriensis +
                              Calliarthron.tuberculosum), #creates column for all CCA
+                 Diatoms = Diatoms, # pull out the diatoms
                  macroalgae = (Diatoms + Algae.film + Turf.algae +Acrosiphonia.coalita + Analipus.japonicus + Chaetomorpha.linum +
                                  Centroceras.Ceramium + Cladophora.columbiana + Cryptosiphonia.wooddii + Costaria.costata +
                                  Cumagloia.andersonii + Erythrophyllum.delessrioides +	Endocladia.muricata	+
@@ -107,10 +111,11 @@ Summarizedgroups<-Communitymetrics %>%
                  allconsumers = (consumers + AdjMusselCover), #consumers and mytilus
                  prodphyllodom = (macroalgae - (consumers + AdjMusselCover)), #producer dominance for phyllo model (so subtract mytilus too)
                  allproddom = (macrophytes - allconsumers)) %>%#prod dominance with foundation spp
-  dplyr::select(PoolID,Foundation_spp,Removal_Control,Before_After,AdjMusselCover, AdjSurfgrassCover, MusselCover, SurfgrassCover,allCCA, macroalgae,macrophytes, macroCCA,
+  dplyr::select(PoolID,Foundation_spp,Removal_Control,Before_After,AdjMusselCover, AdjSurfgrassCover, MusselCover, SurfgrassCover,Diatoms, allCCA, macroalgae,macrophytes, macroCCA,
                 consumers,allconsumers,  prodphyllodom, allproddom)
 
 #write.csv(Summarizedgroups,file="Data/TPSessileCommunityMetrics.csv")
+write_csv(Summarizedgroups,here("Data","Microbe_Clean","CommunityData.csv"))
 
 #Change in foundation species cover
 Funsppcover<- Communitymetrics%>%

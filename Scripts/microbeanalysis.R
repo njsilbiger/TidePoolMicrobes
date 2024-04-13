@@ -22,7 +22,9 @@ microbedata<-read_csv(here("Data","Microbe_Clean","combined_FCMandfDOMdata.csv")
 
 biogeodata<-read_csv(here("Data","Biogeochem","MicrobeCarbChem.csv"))
 
-BenthicData<-read_csv(here("Data","CommunityComposition","TPSessileCommunityMetrics.csv"))
+BenthicData<-read_csv(here("Data","Microbe_Clean","CommunityData.csv"))
+
+MetaData<-read_csv(here("Data","Microbe_Clean","TidePoolDescriptions.csv"))
 ######
 
 head(microbedata)
@@ -244,6 +246,12 @@ p1/p2
 ### calculate growth and uptake rates ####
 #### There is a mix between samples that were collected at timepoint 4 and 5 as the endpoint and most missing samples are from the "before" period.
 
+### add in the SA and vol meta data
+data_all<-data_all %>%
+  left_join(MetaData %>%
+              clean_names() %>%
+              mutate(pool_id = as.character(pool_id)))
+
 # Before Day nutrients were collected at 1,4, and 5 and microbes at 1,5
 # Before night, nutrients are 1,4, and microbes at 1,5
 # After day and night both sets are at 1 and 4
@@ -263,7 +271,7 @@ data_rates_before<-data_all%>%
           hetero_rate = (heterotrophic_bacterioplankton_m_l[time_point==5]-heterotrophic_bacterioplankton_m_l[time_point == 1])/difftime_hours5,
           syn_rate = (synechoococcus_m_l[time_point==5]-synechoococcus_m_l[time_point == 1])/difftime_hours5,
           auto_rate = (autotrophic_pico_eukaryotes_m_l[time_point==5]-autotrophic_pico_eukaryotes_m_l[time_point == 1])/difftime_hours5,
-          .by = c(foundation_spp, removal_control, day_night, pool_id))%>%
+          .by = c(foundation_spp, removal_control, day_night, pool_id, sampling_group))%>%
   drop_na(foundation_spp) %>%
   mutate(before_after = "Before")
 
@@ -285,6 +293,16 @@ data_rates_after<-data_all%>%
           auto_rate = (autotrophic_pico_eukaryotes_m_l[time_point==4]-autotrophic_pico_eukaryotes_m_l[time_point == 1])/difftime_hours,
           humics_rate = (humics[time_point==4] - humics[time_point == 1])/difftime_hours,
           prot_rate = (prot[time_point==4] - prot[time_point == 1])/difftime_hours,
+          uv_rate = (ultra_violet_humic_like[time_point==4] - ultra_violet_humic_like[time_point == 1])/difftime_hours,
+          mh_rate = (marine_humic_like[time_point==4] - marine_humic_like[time_point == 1])/difftime_hours,
+          vh_rate = (visible_humic_like[time_point==4] - visible_humic_like[time_point == 1])/difftime_hours,
+          tryp_rate = (tryptophan_like[time_point==4] - tryptophan_like[time_point == 1])/difftime_hours,
+          tyro_rate = (tyrosine_like[time_point==4] - tyrosine_like[time_point == 1])/difftime_hours,
+          phenyl_rate = (phenylalanine_like[time_point==4] - phenylalanine_like[time_point == 1])/difftime_hours,
+          mc_rate = (m_c[time_point==4] - m_c[time_point == 1])/difftime_hours,
+          bix_rate = (bix[time_point==4] - bix[time_point == 1])/difftime_hours,
+          hix_rate = (hix[time_point==4] - hix[time_point == 1])/difftime_hours,
+          fi_rate = (fi[time_point==4] - fi[time_point == 1])/difftime_hours,
           .by = c(foundation_spp, removal_control, day_night, pool_id, sampling_group),)%>%
   drop_na(foundation_spp)%>%
   mutate(before_after = "After")
@@ -293,6 +311,68 @@ data_rates_after<-data_all%>%
 data_rates <-
   bind_rows(data_rates_before, data_rates_after) %>%
   mutate(nh4_rate = ifelse(nh4_rate>10, NA, nh4_rate)) # remove crazy Nh4 outlier
+
+
+### calculate true rates normalized to tide pool volume and SA while also controling for the change in the ocean
+ocean_rates<-data_rates %>%
+  filter(pool_id == "Ocean") %>%
+  select(day_night, before_after, sampling_group, do_mg_l_rate:auto_rate, humics_rate: fi_rate) %>%
+  rename_with(~paste0(., "_ocean"), -c(day_night:sampling_group)) # rename all the rates to say ocean
+
+# bring to ocean rates with the pool rates for easier normalization
+# calculate rates normalized to ocean change, tide pool volume and SA 
+
+poolrates<-data_rates%>%
+  filter(pool_id != "Ocean") %>%
+  select(-c(difftime_hours, difftime_hours5)) %>% # remove things I dont need
+  left_join(ocean_rates) %>% # join with the ocean rates
+  left_join(MetaData %>%
+              clean_names() %>%
+              mutate(pool_id = as.character(pool_id)))%>%
+  mutate(do_mg_m2_hr_ocean = (do_mg_l_rate - do_mg_l_rate_ocean)*(vol/surface_area), # normalized to ocean
+         do_mg_m2_hr = (do_mg_l_rate)*(vol/surface_area), # not ocean
+         po_umol_m2_hr_ocean = (po_rate  - po_rate_ocean)*(vol/surface_area),
+         po_umol_m2_hr = (po_rate)*(vol/surface_area),
+         nn_umol_m2_hr_ocean = (nn_rate  - nn_rate_ocean)*(vol/surface_area),
+         nn_umol_m2_hr = (nn_rate)*(vol/surface_area),
+         nh4_umol_m2_hr_ocean = (nh4_rate  - nh4_rate_ocean)*(vol/surface_area),
+         nh4_umol_m2_hr = (nh4_rate)*(vol/surface_area),
+         ph_m2_hr_ocean = (ph_rate  - ph_rate_ocean)/(surface_area),
+         ph_m2_hr = (ph_rate/surface_area),
+         hetero_counts_m2_hr_ocean = (hetero_rate  - hetero_rate_ocean)*(1000*vol/surface_area),# bacteria are in counts per ml
+         hetero_counts_m2_hr = (hetero_rate)*(vol/surface_area),
+         syn_counts_m2_hr_ocean = (syn_rate  - syn_rate_ocean)*(1000*vol/surface_area),# bacteria are in counts per ml
+         syn_counts_m2_hr = (syn_rate)*(vol/surface_area),
+         auto_counts_m2_hr_ocean = (auto_rate  - auto_rate_ocean)*(1000*vol/surface_area),# bacteria are in counts per ml
+         auto_counts_m2_hr = (auto_rate)*(vol/surface_area),
+         prot_raman_m2_hr_ocean = (prot_rate  - prot_rate_ocean)/surface_area,# 
+         prot_raman_m2_hr = (prot_rate/surface_area),
+         humics_raman_m2_hr_ocean = (humics_rate  - humics_rate_ocean)/surface_area,# 
+         humics_raman_m2_hr = (humics_rate/surface_area),
+         uv_raman_m2_hr_ocean = (uv_rate  - uv_rate_ocean)/surface_area,# 
+         uv_raman_m2_hr = (uv_rate/surface_area),
+         mh_raman_m2_hr_ocean = (mh_rate  - mh_rate_ocean)/surface_area,# 
+         mh_raman_m2_hr = (mh_rate/surface_area),
+         vh_raman_m2_hr_ocean = (vh_rate  - vh_rate_ocean)/surface_area,# 
+         vh_raman_m2_hr = (vh_rate/surface_area),
+         tryp_raman_m2_hr_ocean = (tryp_rate  - tryp_rate_ocean)/surface_area,# 
+         tryp_raman_m2_hr = (tryp_rate/surface_area),
+         tyro_raman_m2_hr_ocean = (tyro_rate  - tyro_rate_ocean)/surface_area,# 
+         tyro_raman_m2_hr = (tyro_rate/surface_area),
+         phenyl_raman_m2_hr_ocean = (phenyl_rate  - phenyl_rate_ocean)/surface_area,# 
+         phenyl_raman_m2_hr = (phenyl_rate/surface_area),
+         mc_hr_ocean = (mc_rate - mc_rate_ocean),# this is a ratio so not normalized to anything
+         mc_hr = mc_rate,
+         bix_hr_ocean = (bix_rate - bix_rate_ocean),# this is a ratio so not normalized to anything
+         bix_hr = bix_rate,
+         hix_hr_ocean = (hix_rate - hix_rate_ocean),# this is a ratio so not normalized to anything
+         hix_hr = hix_rate,
+         fi_hr_ocean = (fi_rate - fi_rate_ocean),# this is a ratio so not normalized to anything
+         fi_hr = fi_rate
+  ) %>%
+  select(foundation_spp:pool_id,before_after,do_mg_m2_hr_ocean:fi_hr)
+    
+
 
 # make a bunch of boxplots
 data_rates %>%
@@ -530,6 +610,71 @@ p2<-PC_loadings %>%
 p1/plot_spacer()/p2+plot_layout(heights = c(2,-0.1, 1))
 ggsave(here("Output","pca_fdom.png"), width = 8, height = 8)
 
+
+
+## Make a plot of the benthic data
+
+BenthicData %>%
+  select(PoolID, Before_After, macroalgae, Diatoms, consumers, allCCA, AdjMusselCover, AdjSurfgrassCover)%>%
+  mutate(rock_sand = (100-(macroalgae+consumers+allCCA+AdjMusselCover+AdjSurfgrassCover)),
+         macroalgae = macroalgae - Diatoms,
+         Before_After = factor(Before_After, levels = c("Before","After"))) %>% # the macroalgae includes diatom cover and I want to see the difference
+  pivot_longer(cols = macroalgae:rock_sand) %>%
+  ggplot(aes(x = PoolID, y = value, fill = name))+
+  geom_bar(position = "stack", stat = "identity") +
+  scale_fill_manual(values = cal_palette("tidepool", n = 7, type = "continuous"))+
+  facet_wrap(~Before_After, ncol = 1)+
+  theme_classic()
+
+BenthicData %>%
+  filter(Before_After == "After")%>%
+  select(PoolID, Before_After, macroalgae, Diatoms, consumers, allCCA, AdjMusselCover, AdjSurfgrassCover)%>%
+  mutate(PoolID =  as.factor(PoolID)) %>%
+  mutate(rock_sand = (100-(macroalgae+consumers+allCCA+AdjMusselCover+AdjSurfgrassCover)),
+         macroalgae = macroalgae - Diatoms,
+         PoolID = fct_reorder2(PoolID,rock_sand, AdjMusselCover),) %>% # the macroalgae includes diatom cover and I want to see the difference
+  pivot_longer(cols = macroalgae:rock_sand) %>%
+  ggplot(aes(x = PoolID, y = value, fill = name))+
+  geom_bar(position = "stack", stat = "identity") +
+  scale_fill_manual(values = cal_palette("tidepool", n = 7, type = "continuous"))+
+  theme_classic()
+
+#### Take a regression approach with and w/o the ocean normalization
+Benthic<-BenthicData %>%
+  select(-c(Removal_Control, Foundation_spp))%>%
+  rename(pool_id = PoolID, before_after = Before_After) %>%
+  mutate(pool_id = as.character(pool_id))
+
+PoolRates_combined <-poolrates %>%
+  left_join(Benthic, by = c("pool_id", "before_after"))             
+
+
+PoolRates_combined %>%
+  filter(day_night == "Day",
+         before_after == "After") %>%
+  ggplot(aes(x = allproddom, y = do_mg_m2_hr_ocean))+
+  geom_point()
+  
+
+PoolRates_combined %>%
+  filter(day_night == "Day",
+         before_after == "After") %>%
+  ggplot(aes(x = allproddom, y = nh4_umol_m2_hr_ocean))+
+  geom_point()
+
+
+PoolRates_combined %>%
+  filter(day_night == "Day",
+         before_after == "After",
+         mc_hr > -0.3) %>%
+  ggplot(aes(x = do_mg_m2_hr, y = mc_hr))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+anova(lm(data = PoolRates_combined %>%
+           filter(day_night == "Day",
+                  before_after == "After",
+                  mc_hr > -0.3), mc_hr~do_mg_m2_hr))
 ### Take a regression approach #####
 
 ## combine with community comp data
