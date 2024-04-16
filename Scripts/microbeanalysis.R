@@ -14,6 +14,9 @@ library(calecopal)
 library(lubridate)
 library(lme4)
 library(lmerTest)
+library(vegan)
+library(broom)
+library(broom.mixed)
 
 ## read in the data ####
 
@@ -394,6 +397,32 @@ mean_rates<-data_rates %>%
             se_value = sd(value, na.rm = TRUE)/sqrt(n()))
 
 
+mean_poolrates<- poolrates %>%
+  mutate(before_after = factor(before_after, levels = c("Before","After")))%>%
+ # select(-contains("_ocean")) %>%# remove the ocean control
+  pivot_longer(cols= c(do_mg_m2_hr:fi_hr)) %>%
+  group_by(foundation_spp, removal_control, day_night, before_after, name)%>%
+  summarise(mean_value = mean(value, na.rm = TRUE),
+            se_value = sd(value, na.rm = TRUE)/sqrt(n()))
+
+
+mean_poolrates %>%
+  filter(day_night != "Night") %>%
+  filter(name %in% c("auto_counts_m2_hr_ocean","syn_counts_m2_hr_ocean",
+                   "hetero_counts_m2_hr_ocean","do_mg_m2_hr_ocean",
+                   "nh4_umol_m2_hr_ocean","nn_umol_m2_hr_ocean")) %>%
+  ggplot(aes(x = before_after, y = mean_value, color = removal_control, group = removal_control))+
+  geom_hline(yintercept = 0, lty = 2)+
+  geom_point()+
+  geom_errorbar(aes(x = before_after, y = mean_value, ymin = mean_value-se_value, ymax = mean_value+se_value), width = 0.01)+
+  geom_line()+
+  labs(x = "time period",
+       y = "Rate per hour")+
+  facet_wrap(name~foundation_spp, scales = "free", ncol = 2)+
+  theme_bw()
+  
+
+
 ## with only the control pools, but across both timepoints
 mean_rates_control<-data_rates %>%
   mutate(before_after = factor(before_after, levels = c("Before","After")))%>%
@@ -421,6 +450,9 @@ day_plot<-mean_rates %>%
   bind_rows(myt_ocean) %>%
   bind_rows(phylo_ocean) %>%
   filter(day_night == "Day")%>%
+  filter(name %in% c("auto_rate",
+         "hetero_rate","do_mg_l_rate",
+         "nh4_rate","nn_rate"))%>%
   ggplot(aes(x = before_after, y = mean_value, color = removal_control, group = removal_control))+
   geom_hline(yintercept = 0, lty = 2)+
   geom_point()+
@@ -432,6 +464,97 @@ day_plot<-mean_rates %>%
   theme_bw()
 
 day_plot
+
+
+## run some two-way ANOVAs
+
+## I need to layer then so that ocean is included as removal control for both M and P
+
+data_anova_M<-data_rates %>%
+  mutate(before_after = factor(before_after, levels = c("Before","After")))%>%
+  select(foundation_spp, before_after,removal_control, day_night, pool_id, "auto_rate",
+         "hetero_rate","do_mg_l_rate",
+         "nh4_rate","nn_rate")%>%
+  pivot_longer(cols= c("auto_rate",
+                       "hetero_rate","do_mg_l_rate",
+                       "nh4_rate","nn_rate")) %>%
+  filter(foundation_spp == "Mytilus")
+
+data_anova_P<-data_rates %>%
+  mutate(before_after = factor(before_after, levels = c("Before","After")))%>%
+  select(foundation_spp, before_after,removal_control, day_night, pool_id, "auto_rate",
+         "hetero_rate","do_mg_l_rate",
+         "nh4_rate","nn_rate")%>%
+  pivot_longer(cols= c("auto_rate",
+                       "hetero_rate","do_mg_l_rate",
+                       "nh4_rate","nn_rate")) %>%
+  filter(foundation_spp == "Phyllospadix")
+
+
+data_anova_om <-data_rates %>%
+  mutate(before_after = factor(before_after, levels = c("Before","After")))%>%
+  select(foundation_spp, before_after,removal_control, day_night, pool_id, "auto_rate",
+         "hetero_rate","do_mg_l_rate",
+         "nh4_rate","nn_rate")%>%
+  pivot_longer(cols= c("auto_rate",
+                       "hetero_rate","do_mg_l_rate",
+                       "nh4_rate","nn_rate")) %>%
+  filter(foundation_spp == "Ocean")%>%
+  mutate(foundation_spp = "Mytilus")
+
+data_anova_op <-data_rates %>%
+  mutate(before_after = factor(before_after, levels = c("Before","After")))%>%
+  select(foundation_spp, before_after,removal_control, day_night, pool_id, "auto_rate",
+         "hetero_rate","do_mg_l_rate",
+         "nh4_rate","nn_rate")%>%
+  pivot_longer(cols= c("auto_rate",
+                       "hetero_rate","do_mg_l_rate",
+                       "nh4_rate","nn_rate")) %>%
+  filter(foundation_spp == "Ocean")%>%
+  mutate(foundation_spp = "Phyllospadix")
+
+data_anova <-data_anova_M %>%
+  bind_rows(data_anova_om)%>%
+  bind_rows(data_anova_P)%>%
+  bind_rows(data_anova_op)%>%
+  filter(day_night == "Day")%>%
+  select(!day_night)%>%
+  nest_by(foundation_spp, name) %>%
+  mutate(mod = list(lmer(value~removal_control*before_after+(1|pool_id), data = data)),
+         modstat = list(broom::glance(mod)),
+         res =  list(broom::tidy(mod)),
+         ano = list(broom::tidy(anova(mod))))
+
+data_anova %>%
+  select(foundation_spp, name, modstat, res, ano) %>%
+  unnest(ano) %>%
+  filter(term != "Residuals") %>%
+  filter(p.value <= 0.05) # pull out just the significant values
+
+
+### do the anova without the ocean sample since too low sample size
+data_rates %>%
+  mutate(before_after = factor(before_after, levels = c("Before","After")))%>%
+  select(foundation_spp, before_after,removal_control, day_night, pool_id, "auto_rate",
+         "hetero_rate","do_mg_l_rate",
+         "nh4_rate","nn_rate")%>%
+  pivot_longer(cols= c("auto_rate",
+                       "hetero_rate","do_mg_l_rate",
+                       "nh4_rate","nn_rate")) %>%
+  filter(foundation_spp != "Ocean") %>%
+  filter(day_night == "Day")%>%
+  select(!day_night)%>%
+  nest_by(foundation_spp, name) %>%
+  mutate(mod = list(lmer(value~removal_control*before_after+(1|pool_id), data = data)),
+         modstat = list(broom::glance(mod)),
+         res =  list(broom::tidy(mod)),
+         ano = list(broom::tidy(anova(mod))))%>%
+select(foundation_spp, name, modstat, res, ano) %>%
+  unnest(ano) %>%
+  filter(term != "Residuals") %>%
+  filter(p.value <= 0.05)
+
+
 
 # make a set of reaction norm plots for the night
 
