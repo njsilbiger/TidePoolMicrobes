@@ -769,7 +769,7 @@ ggsave(here("Output","pca_fdom.png"), width = 8, height = 8)
 ## Make a plot of the benthic data
 
 BenthicData %>%
-  select(PoolID, Before_After, macroalgae, Diatoms, consumers, allCCA, AdjMusselCover, AdjSurfgrassCover)%>%
+  select(Foundation_spp, Removal_Control, PoolID, Before_After, macroalgae, Diatoms, consumers, allCCA, AdjMusselCover, AdjSurfgrassCover)%>%
   mutate(rock_sand = (100-(macroalgae+consumers+allCCA+AdjMusselCover+AdjSurfgrassCover)),
          macroalgae = macroalgae - Diatoms,
          Before_After = factor(Before_After, levels = c("Before","After"))) %>% # the macroalgae includes diatom cover and I want to see the difference
@@ -777,7 +777,7 @@ BenthicData %>%
   ggplot(aes(x = PoolID, y = value, fill = name))+
   geom_bar(position = "stack", stat = "identity") +
   scale_fill_manual(values = cal_palette("tidepool", n = 7, type = "continuous"))+
-  facet_wrap(~Before_After, ncol = 1)+
+  facet_wrap(Before_After~Removal_Control, scale = "free_x")+
   theme_classic()
 
 BenthicData %>%
@@ -849,16 +849,14 @@ anova(lm(data = PoolRates_combined %>%
 
 ## combine with community comp data
 
-Day_rates<-BenthicData %>%
-  select(-`...1`) %>%
+Day_rates<-BenthicData  %>%
   rename(pool_id = PoolID, removal_control = Removal_Control, before_after = Before_After, foundation_spp = Foundation_spp) %>%
   mutate(pool_id = as.character(pool_id))%>%
   right_join(data_rates) %>%
   filter(day_night == "Day") %>%
   mutate(month = factor(ifelse(before_after == "Before", "July", "August (Upwelling)"), levels = c("July", "August (Upwelling)")))
 
-Night_rates<-BenthicData %>%
-  select(-`...1`) %>%
+Night_rates<-BenthicData  %>%
   rename(pool_id = PoolID, removal_control = Removal_Control, before_after = Before_After, foundation_spp = Foundation_spp) %>%
   mutate(pool_id = as.character(pool_id))%>%
   right_join(data_rates) %>%
@@ -886,15 +884,21 @@ ggplot(aes(x = prodphyllodom, y = value))+
   facet_wrap(~name, scales = "free_y")
 
 ## Make plot just for prod and DO, and Het and DO
+weird <- scales::trans_new("signed_log",
+                           transform=function(x) sign(x)*log(abs(x)),
+                           inverse=function(x) sign(x)*exp(abs(x)))
+
 P_DO_Prod<-Day_rates %>%  
   filter(foundation_spp != "Ocean") %>%
   filter(month == "August (Upwelling)")%>%
   ggplot(aes(x = allproddom, y = do_mg_l_rate))+
   geom_vline(aes(xintercept  = 0), lty = 2)+
-  geom_hline(aes(yintercept  = 0), lty = 2)+
+  geom_hline(aes(yintercept  = log(1)), lty = 2)+
   geom_point(alpha = 0.5)+
   geom_smooth(method = "lm", color = "black")+
+#  coord_trans(y = function(x)log(x+1))+
   geom_text(aes(x = 50, y = 6, label = "p <0.001"))+
+  geom_text(aes(x = 50, y = 5.5, label = "R2 = 0.31"))+
   geom_text(aes(x = 50, y = -0.5, label = "Producer dominated"))+
   geom_text(aes(x = -50, y = -0.5, label = "Consumer dominated"))+
   labs(x = "Producer-dominance (% Producers - % Consumers)",
@@ -902,6 +906,14 @@ P_DO_Prod<-Day_rates %>%
        color = "")+
   theme_bw()+
   theme(panel.grid = element_blank())
+
+anova(lm(data = Day_rates %>%  
+           filter(foundation_spp != "Ocean") %>%
+           filter(month == "August (Upwelling)"),do_mg_l_rate~ allproddom))
+
+summary(lm(data = Day_rates %>%  
+     filter(foundation_spp != "Ocean") %>%
+     filter(month == "August (Upwelling)"),do_mg_l_rate~ allproddom))
 
 P_DO_het<-Day_rates %>%  
   filter(foundation_spp != "Ocean") %>%
@@ -928,12 +940,15 @@ anova(Prod_DO_mod)
 summary(Prod_DO_mod)
 
 # mod of producer dominance and nuts
-NN_prod_mod<-lmer(data = Day_rates %>%  
-                 filter(foundation_spp != "Ocean"),nn_rate~prodphyllodom+(1|pool_id)  )
+NN_prod_mod<-lm(data = Day_rates %>%  
+                 filter(foundation_spp != "Ocean")%>%
+                   filter(before_after == "After"),nn_rate~poly(allproddom,2))
 anova(NN_prod_mod)
+summary(NN_prod_mod)
 
-NH4_prod_mod<-lmer(data = Day_rates %>%  
-                  filter(foundation_spp != "Ocean"),nh4_rate~prodphyllodom+(1|pool_id) )
+NH4_prod_mod<-lm(data = Day_rates %>%  
+                  filter(foundation_spp != "Ocean")%>%
+                    filter(before_after == "After"),nh4_rate~poly(prodphyllodom,2))
 anova(NH4_prod_mod)
 
 # producers and H back
@@ -943,14 +958,14 @@ anova(Hetero_prod_mod)
 
 Nuts_prod<-Day_rates %>%  
   filter(foundation_spp != "Ocean") %>%
- # filter(nn_rate < 4)%>% # remove one outlier
+#  filter(nh4_rate < 4)%>% # remove one outlier
  # select(month,nn_rate,nh4_rate, po_rate, hetero_rate, syn_rate, auto_rate)%>%
   rename(`N+N` = nn_rate, NH4 = nh4_rate )%>%
   pivot_longer(cols = c(`N+N`,NH4)) %>%
    filter(before_after == "After")%>%
   ggplot(aes(y = value, x = allproddom))+
   geom_point(alpha = 0.5)+
-  geom_smooth(method = "lm", color = "black")+
+  geom_smooth(method = "lm", color = "black", formula = 'y~poly(x,2)')+
   geom_hline(aes(yintercept  = 0), lty = 2)+
   geom_vline(aes(xintercept  = 0), lty = 2)+
   labs(x = "Producer-dominance (% Producers - % Consumers)",
@@ -960,6 +975,46 @@ Nuts_prod<-Day_rates %>%
   facet_wrap(~name, ncol = 1, scales = "free_y")+
   theme(panel.grid = element_blank())
 
+
+NN_prod<-Day_rates %>%  
+  filter(foundation_spp != "Ocean") %>%
+  #  filter(nh4_rate < 4)%>% # remove one outlier
+  # select(month,nn_rate,nh4_rate, po_rate, hetero_rate, syn_rate, auto_rate)%>%
+  rename(`N+N` = nn_rate, NH4 = nh4_rate )%>%
+#  pivot_longer(cols = c(`N+N`,NH4)) %>%
+  filter(before_after == "After")%>%
+  ggplot(aes(y = `N+N`, x = allproddom))+
+  geom_point(alpha = 0.5)+
+  geom_smooth(method = "lm", color = "black", formula = 'y~poly(x,2)')+
+  geom_hline(aes(yintercept  = 0), lty = 2)+
+  geom_vline(aes(xintercept  = 0), lty = 2)+
+  geom_text(aes(x = -50, y = 2.5, label = "p = 0.01"))+
+  labs(x = "",
+       y = "N+N (umol L-1 hr-1)",
+       color = "")+
+  theme_bw()+
+  theme(panel.grid = element_blank())
+
+NH4_prod<-Day_rates %>%  
+  filter(foundation_spp != "Ocean") %>%
+  #  filter(nh4_rate < 4)%>% # remove one outlier
+  # select(month,nn_rate,nh4_rate, po_rate, hetero_rate, syn_rate, auto_rate)%>%
+  rename(`N+N` = nn_rate, NH4 = nh4_rate )%>%
+  #  pivot_longer(cols = c(`N+N`,NH4)) %>%
+  filter(before_after == "After")%>%
+  ggplot(aes(y = NH4, x = allproddom))+
+  geom_point(alpha = 0.5)+
+  geom_smooth(method = "lm", color = "black", formula = 'y~poly(x,2)')+
+  geom_hline(aes(yintercept  = 0), lty = 2)+
+  geom_vline(aes(xintercept  = 0), lty = 2)+
+  geom_text(aes(x = -50, y = 4, label = "p < 0.001"))+
+  labs(x = "Producer-dominance (% Producers - % Consumers)",
+       y = "NH4 (umol L-1 hr-1)",
+       color = "")+
+  theme_bw()+
+  theme(panel.grid = element_blank())
+
+NN_prod/NH4_prod
 
 ggsave(here("Output","Prod_N.png"), height = 8, width = 4)
 # run a model of NN and NH4~ heterotrophic Bac
@@ -991,10 +1046,11 @@ Prot_Hetero<-Day_rates %>%
   geom_hline(aes(yintercept  = 0), lty = 2)+
   geom_vline(aes(xintercept  = 0), lty = 2)+
   geom_point(alpha = 0.5)+
-  geom_text(aes(x = 175, y = 0.1, label = "p = 0.015"))+
+  geom_text(aes(x = 175, y = 0.1, label = "p = 0.036"))+
+  ylim(-.3,.3)+
   geom_smooth(method = "lm", color = "black")+
-  labs(y = "Proteinaceaous fDOM (raman units L-1 hr-1)",
-       x = "heterotrophic bacteria (counts L-1 hr-1)",
+  labs(y = "Proteinaceaous fDOM (raman units hr-1)",
+       x = "heterotrophic bacteria (counts mL-1 hr-1)",
        color = "")+
   theme_bw()+
   theme(panel.grid = element_blank())
@@ -1002,14 +1058,16 @@ Prot_Hetero<-Day_rates %>%
 Prot_NH4<-Day_rates %>%  
   filter(foundation_spp != "Ocean",
          before_after == "After")%>%
-  filter(prot_rate < 0.3, nh4_rate<4)%>% # remove three outlier... figure out which..
+  filter(nh4_rate<5,prot_rate < 0.3)%>%
+  #filter(prot_rate < 0.3, nh4_rate<4)%>% # remove three outlier... figure out which..
   #  pivot_longer(cols = c(humics_rate, prot_rate)) %>%
   # filter(removal_control == "Control")%>%
   ggplot(aes(x = nh4_rate, y = prot_rate))+
   geom_hline(aes(yintercept  = 0), lty = 2)+
   geom_vline(aes(xintercept  = 0), lty = 2)+
   geom_point(alpha = 0.5)+
-  geom_text(aes(x = 4, y = -0.1, label = "p = 0.09"))+
+  ylim(-.3,.3)+
+  geom_text(aes(x = 2.5, y = -0.1, label = "p = 0.027"))+
   geom_smooth(method = "lm", color = "black", lty = 2)+
   labs(y = "",
        x = "NH4 rate (umol L-1 hr-1)",
@@ -1018,40 +1076,41 @@ Prot_NH4<-Day_rates %>%
   theme(panel.grid = element_blank())
 
 Het_prot_mod<-lm(data = Day_rates %>% 
-                   drop_na(prot_rate,nh4_rate)%>%
-                   filter(prot_rate < 0.3, nh4_rate<4), prot_rate~hetero_rate+nh4_rate)
+                   filter(nh4_rate<5,
+                          prot_rate < 0.3)%>%
+                   drop_na(prot_rate,nh4_rate), prot_rate~nh4_rate+hetero_rate)
 
 anova(Het_prot_mod)
 
-het_nh4_mod<-lm(data = Day_rates %>% 
-                  drop_na(prot_rate,nh4_rate)%>%
-                  filter(prot_rate < 0.3, nh4_rate<4), nh4_rate~log(hetero_rate+50))
 
-anova(het_nh4_mod)
 
 Prot_Hetero|Prot_NH4
 ggsave(here("Output","Prot_het_nh4.png"), width = 8, height = 4)
 
 ## production driving prod fdom
-Prot_nh4<-Day_rates %>%  
-  filter(foundation_spp != "Ocean")%>%
-  filter(prot_rate < 0.6,  
-         prot_rate > -0.3)%>%
-   # remove three outlier... figure out which..
+Day_rates %>%  
+  filter(foundation_spp != "Ocean",
+         before_after == "After")%>%
+  filter(mc_rate > -0.3)%>%
+  #filter(prot_rate < 0.3, nh4_rate<4)%>% # remove three outlier... figure out which..
   #  pivot_longer(cols = c(humics_rate, prot_rate)) %>%
   # filter(removal_control == "Control")%>%
-  ggplot(aes(y = prot_rate, x = nh4_rate))+
-  geom_point()+
-  geom_smooth(method = "lm")+
-  labs(y = "raman units L-1 hr-1",
-       x = "nh4 umol L-1 hr-1",
+      ggplot(aes(x = do_mg_l_rate, y = mc_rate))+
+  geom_hline(aes(yintercept  = 0), lty = 2)+
+  geom_vline(aes(xintercept  = 0), lty = 2)+
+  geom_point(alpha = 0.5)+
+#  ylim(-.3,.3)+
+ # geom_text(aes(x = 2.5, y = -0.1, label = "p = 0.027"))+
+  geom_smooth(method = "lm", color = "black", lty = 2)+
+  labs(y = "",
+       x = "DO (mg L-1 hr-1)",
        color = "")+
-  theme_bw()
+  theme_bw()+
+  theme(panel.grid = element_blank())
 
-Prot_nh4_mod<-lm(data = Day_rates  %>%
-                   filter(prot_rate < 0.6,  
-                          prot_rate > -0.3)%>%
-                   drop_na(prot_rate, nh4_rate), prot_rate~nh4_rate)
 
-anova(Prot_nh4_mod)
+mc_DO_mod<-lm(data = Day_rates %>% 
+                   filter(mc_rate > -0.3)%>%
+                   drop_na(mc_rate), mc_rate~do_mg_l_rate)
 
+anova(mc_DO_mod)
