@@ -444,27 +444,58 @@ phylo_ocean<-mean_rates %>%
   filter(foundation_spp == "Ocean") %>%
   mutate(foundation_spp = "Phyllospadix")
 
-# make a set of reaction norm plots for the day
-day_plot<-mean_rates %>%
+mean_plot<-mean_rates %>%
   filter(foundation_spp != "Ocean")%>%
   bind_rows(myt_ocean) %>%
   bind_rows(phylo_ocean) %>%
+mutate(nicenames = case_when(
+  name == "auto_rate" ~"Autotrophic Bacteria <br> (# mL<sup>-1</sup> hr<sup>-1</sup>)",
+  name == "do_mg_l_rate" ~ "DO <br> (mg L<sup>-1</sup> hr<sup>-1</sup>)",
+  name == "hetero_rate" ~ "Heterotrophic Bacteria <br> (# mL<sup>-1</sup> hr<sup>-1</sup>)",
+  name == "nh4_rate" ~ "Ammonium <br> (&mu;mol L<sup>-1</sup> hr<sup>-1</sup>)",
+  name == "nn_rate" ~ "Nitrate+Nitrite <br> (&mu;mol L<sup>-1</sup>hr<sup>-1</sup>)"))
+
+# make a set of reaction norm plots for the day
+
+
+day_plot<-mean_plot %>%
   filter(day_night == "Day")%>%
-  filter(name %in% c("auto_rate",
+  filter(name %in% c(
          "hetero_rate","do_mg_l_rate",
          "nh4_rate","nn_rate"))%>%
-  ggplot(aes(x = before_after, y = mean_value, color = removal_control, group = removal_control))+
+  mutate(nicenames = factor(nicenames, levels = c( "DO <br> (mg L<sup>-1</sup> hr<sup>-1</sup>)","Heterotrophic Bacteria <br> (# mL<sup>-1</sup> hr<sup>-1</sup>)",
+                                                   "Ammonium <br> (&mu;mol L<sup>-1</sup> hr<sup>-1</sup>)","Nitrate+Nitrite <br> (&mu;mol L<sup>-1</sup>hr<sup>-1</sup>)")))%>%
+  ggplot(aes(x = before_after, y = mean_value, color = removal_control, group = removal_control, shape = removal_control))+
   geom_hline(yintercept = 0, lty = 2)+
-  geom_point()+
+  geom_point(size = 3)+
   geom_errorbar(aes(x = before_after, y = mean_value, ymin = mean_value-se_value, ymax = mean_value+se_value), width = 0.01)+
   geom_line()+
-  labs(x = "time period",
-       y = "Rate per hour")+
-  facet_wrap(name~foundation_spp, scales = "free", ncol = 2)+
-  theme_bw()
-
+  labs(x = "",
+       y = "", 
+       color = "",
+       shape = "")+
+  scale_color_manual(values = c("grey30","#79ACBD","grey30"))+
+  scale_shape_manual(values = c(16,16,1))+
+  #facet_nested_wrap(vars(nicenames,foundation_sp), scales = "free", ncol = 2)
+  facet_wrap(nicenames~foundation_spp, scales = "free_y", ncol = 2, strip.position = "left")+
+  facetted_pos_scales(
+    y = rep(list(
+      scale_y_continuous(limits=c(-1, 5)),
+      scale_y_continuous(limits = c(-75, 150)),
+      scale_y_continuous(limits = c(-1, 4)),
+      scale_y_continuous(limits = c(-1.5, 2))
+      ), each = 2))+
+  theme_bw()+
+  theme(strip.text.y.left  = ggtext::element_markdown(size = 16),
+        strip.text.x = element_blank(),
+        strip.placement = "outside",
+        axis.title = element_text(size = 16),
+        axis.text = element_text(size = 14),
+        strip.background = element_blank())
+  
 day_plot
 
+ggsave(here("Output","BACI_plot.pdf"), width = 8, height = 8)
 
 ## run some two-way ANOVAs
 
