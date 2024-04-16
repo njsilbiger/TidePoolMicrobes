@@ -255,6 +255,32 @@ data_all<-data_all %>%
               clean_names() %>%
               mutate(pool_id = as.character(pool_id)))
 
+
+## plot the raw ocean data of before and after
+data_all %>%
+  ungroup()%>%
+  filter(foundation_spp == "Ocean") %>%
+  filter(day_night == "Day") %>%
+  mutate(month = factor(ifelse(before_after == "Before", "July", "August (Upwelling)"), levels = c("July", "August (Upwelling)"))) %>%
+  mutate(prot = tyrosine_like+tryptophan_like+ phenylalanine_like) %>%
+  select(month, do_mg_l,heterotrophic_bac_m_l=heterotrophic_bacterioplankton_m_l,temperature = temp_pool, nn_umol_l, nh4_umol_l) %>%
+  pivot_longer(cols = do_mg_l:nh4_umol_l) %>%
+  group_by(month, name)%>%
+  summarise(mean_val = mean(value, na.rm = TRUE),
+            se_val= sd(value, na.rm = TRUE)/sqrt(n())) %>%
+  ggplot(aes(x = month, y = mean_val))+
+  geom_point(size = 3)+
+  geom_errorbar(aes(x = month, ymin = mean_val - se_val, ymax = mean_val+se_val), width = 0.1)+
+  facet_wrap(~name, scales = "free_y", strip.position = "left", ncol = 1)+
+  labs(x = "",
+       y = "",
+       title = "Mean Ocean values")+
+  theme_bw()+
+  theme(strip.background = element_blank(),
+        strip.placement = "outside")
+  
+ggsave(here("Output","OceanVals.png"), width = 4, height = 9)
+
 # Before Day nutrients were collected at 1,4, and 5 and microbes at 1,5
 # Before night, nutrients are 1,4, and microbes at 1,5
 # After day and night both sets are at 1 and 4
