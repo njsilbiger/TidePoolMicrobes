@@ -198,6 +198,8 @@ data_long<-data_all %>%
   select(month, day_night, time_point,removal_control, foundation_spp,do_mg_l,heterotrophic_bacterioplankton_m_l:autotrophic_pico_eukaryotes_m_l,prot, humic, nn_umol_l, nh4_umol_l) %>%
   pivot_longer(cols = do_mg_l:nh4_umol_l)
 
+### MAKE THIS PLOT PRETTY #######
+
 data_all %>%
   ungroup()%>%
   filter(removal_control != "Removal") %>%
