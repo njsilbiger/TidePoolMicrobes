@@ -496,7 +496,7 @@ Night_rates<-BenthicData  %>%
   mutate(month = factor(ifelse(before_after == "Before", "July", "August (Upwelling)"), levels = c("July", "August (Upwelling)")))
 
 ## make some plots
-P_Nuts<-Day_rates %>%  
+Day_rates_clean<-Day_rates %>%  
   filter(foundation_spp != "Ocean") %>%
   filter(!name %in% c("fi","bix","hix","m_c") )%>%
   mutate(nicenames = case_when(
@@ -519,13 +519,17 @@ P_Nuts<-Day_rates %>%
                                                   "Synechoococcus <br> (# mL<sup>-1</sup> hr<sup>-1</sup>)",
                                                   "Heterotrophic <br> (# mL<sup>-1</sup> hr<sup>-1</sup>)"
     
-  )))%>%
-  ggplot(aes(x = allproddom, y = rate_hr))+
+  )))
+
+P_Nuts <- Day_rates_clean %>%
+ggplot(aes(x = allproddom, y = rate_hr))+
   geom_vline(aes(xintercept  = 0))+
   geom_hline(aes(yintercept  = 0))+
   geom_point(aes(color =  month), alpha = 0.5)+
   geom_smooth(method = "lm",
-              formula = 'y~poly(x,2)', color = "black")+
+              formula = 'y~poly(x,2)', color = "black",
+              data = Day_rates_clean %>% # only plot the significant models
+                filter(name %in% c("synechoococcus_m_l","po_umol_l","nn_umol_l","nh4_umol_l","do_mg_l")))+
   labs(x = "Producer-dominance (%)",
        y = "",
        color = "")+
@@ -542,6 +546,25 @@ P_Nuts<-Day_rates %>%
         legend.direction = "horizontal")
 
 ggsave(here("Output","Regressionplots.png"), width = 12, height = 8)
+
+
+## lmer models --  pool id to account for repeated measure as random effect
+data_anova<-Day_rates %>%  
+  filter(foundation_spp != "Ocean") %>%
+  filter(!name %in% c("fi","bix","hix","m_c") ) %>%
+  select(pool_id, before_after,allproddom, name, rate_hr) %>%
+  nest_by(name) %>%
+  mutate(mod = list(lmer(rate_hr~poly(allproddom,2)+(1|pool_id), data = data)),
+         modstat = list(broom::glance(mod)),
+         res =  list(broom::tidy(mod)),
+         ano = list(broom::tidy(anova(mod))))
+ 
+data_anova %>%
+  select(name, modstat, res, ano) %>%
+  unnest(ano) %>%
+  filter(term != "Residuals") %>%
+  filter(p.value <= 0.05) # pull out just the significant values
+
 
 # community and DO
 P_DO_Prod<-Day_rates %>%  
