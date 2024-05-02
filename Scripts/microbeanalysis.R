@@ -20,7 +20,6 @@ library(broom.mixed)
 
 ## read in the data ####
 
-#biogeodata<-read_csv(here("Output","MicrobesTime4and5NECNEP.csv"))
 microbedata<-read_csv(here("Data","Microbe_Clean","combined_FCMandfDOMdata.csv"))
 
 biogeodata<-read_csv(here("Data","Biogeochem","MicrobeCarbChem.csv"))
@@ -28,6 +27,14 @@ biogeodata<-read_csv(here("Data","Biogeochem","MicrobeCarbChem.csv"))
 BenthicData<-read_csv(here("Data","Microbe_Clean","CommunityData.csv"))
 
 MetaData<-read_csv(here("Data","Microbe_Clean","TidePoolDescriptions.csv"))
+
+# Pull out the NEC and NEP rates
+MetabRates<-read_csv(here("Output","MicrobesTime4and5NECNEP.csv")) %>%
+  filter(Time_Point == 4) %>% # use th3 4 hour calculations
+  select(PoolID, Foundation_spp, Before_After, Removal_Control, Day_Night, NEC.mmol.m2.hr, NEP.mmol.m2.hr) %>%
+  clean_names()%>%
+  mutate(before_after = factor(before_after, levels = c("Before","After")))
+  
 ######
 
 head(microbedata)
@@ -342,6 +349,11 @@ data_rates <-
   mutate(nh4_rate = ifelse(nh4_rate>10, NA, nh4_rate)) # remove crazy Nh4 outlier
 
 
+## add in NEC and NEP
+data_rates<-data_rates %>%
+  left_join(MetabRates %>%
+              mutate(pool_id = as.character(pool_id)))
+
 ### calculate true rates normalized to tide pool volume and SA while also controling for the change in the ocean
 ocean_rates<-data_rates %>%
   filter(pool_id == "Ocean") %>%
@@ -402,6 +414,11 @@ poolrates<-data_rates%>%
   select(foundation_spp:pool_id,before_after,do_mg_m2_hr_ocean:fi_hr)
     
 
+## Add in the eco metab rates to the pool rates
+poolrates <- poolrates %>%
+  left_join(MetabRates %>%
+              mutate(pool_id = as.character(pool_id)))
+
 
 # make a bunch of boxplots
 data_rates %>%
@@ -458,7 +475,6 @@ mean_rates_control<-data_rates %>%
   group_by(foundation_spp, day_night, name)%>%
   summarise(mean_value = mean(value, na.rm = TRUE),
             se_value = sd(value, na.rm = TRUE)/sqrt(n()))
-
 
 
 # rename the foundation species for the ocean to have one group for mussels and one for phyllo for easier plotting
@@ -800,11 +816,12 @@ BenthicData %>%
          macroalgae = macroalgae - Diatoms,
          Before_After = factor(Before_After, levels = c("Before","After"))) %>% # the macroalgae includes diatom cover and I want to see the difference
   pivot_longer(cols = macroalgae:rock_sand) %>%
-  ggplot(aes(x = PoolID, y = value, fill = name))+
+  ggplot(aes(x = Before_After, y = value, fill = name))+
   geom_bar(position = "stack", stat = "identity") +
   scale_fill_manual(values = cal_palette("tidepool", n = 7, type = "continuous"))+
   facet_wrap(Before_After~Removal_Control, scale = "free_x")+
-  theme_classic()
+  theme_classic()+
+  facet_wrap(Removal_Control~PoolID, ncol = 8)
 
 BenthicData %>%
   filter(Before_After == "After")%>%
@@ -951,7 +968,7 @@ P_DO_het<-Day_rates %>%
   geom_smooth(method = "lm", color = "black", lty = 2)+
   geom_text(aes(x = 50, y = 6, label = "p = 0.19"))+
   labs(x = "Heterotrophic Bacteria production (counts L-1 hr-1)",
-       y = "",
+       y = "Productivity (DO mg L-1 hr-1)",
        color = "")+
   theme_bw()+
   theme(panel.grid = element_blank())
@@ -1015,9 +1032,9 @@ NN_prod<-Day_rates %>%
   geom_hline(aes(yintercept  = 0), lty = 2)+
   geom_vline(aes(xintercept  = 0), lty = 2)+
   geom_text(aes(x = -50, y = 2.5, label = "p = 0.01"))+
-  labs(x = "",
+  labs(x = "Producer-dominance (% Producers - % Consumers)",
        y = "N+N (umol L-1 hr-1)",
-       color = "")+
+       color = "Producer-dominance (% Producers - % Consumers)")+
   theme_bw()+
   theme(panel.grid = element_blank())
 
@@ -1052,6 +1069,7 @@ NN_DO_mod<-lm(data = Day_rates %>%
                   filter(foundation_spp != "Ocean",
                          before_after == "After"),nn_rate~do_mg_l_rate)
 anova(NN_DO_mod)
+
 
 NH_DO_mod<-lm(data = Day_rates %>%  
                 filter(foundation_spp != "Ocean",
@@ -1095,7 +1113,7 @@ Prot_NH4<-Day_rates %>%
   ylim(-.3,.3)+
   geom_text(aes(x = 2.5, y = -0.1, label = "p = 0.027"))+
   geom_smooth(method = "lm", color = "black", lty = 2)+
-  labs(y = "",
+  labs(y = "Proteinaceaous fDOM (raman units hr-1)",
        x = "NH4 rate (umol L-1 hr-1)",
        color = "")+
   theme_bw()+
@@ -1112,6 +1130,13 @@ anova(Het_prot_mod)
 
 Prot_Hetero|Prot_NH4
 ggsave(here("Output","Prot_het_nh4.png"), width = 8, height = 4)
+
+
+
+## bring all the plots together
+(Prot_Hetero|Prot_NH4)/(NN_prod|NH4_prod)/(P_DO_Prod|P_DO_het)
+
+ggsave(here("Output","regressionmods.png"), height = 10, width = 8)
 
 ## production driving prod fdom
 Day_rates %>%  
@@ -1140,3 +1165,111 @@ mc_DO_mod<-lm(data = Day_rates %>%
                    drop_na(mc_rate), mc_rate~do_mg_l_rate)
 
 anova(mc_DO_mod)
+
+
+## Do a multivariate community analysis on the x
+BD<- Day_rates %>%  
+  filter(foundation_spp != "Ocean")%>%
+  filter(before_after == "After")  %>%
+  drop_na(nn_rate, nh4_rate, do_mg_l_rate)%>%
+  select(AdjMusselCover, AdjSurfgrassCover, Diatoms, allCCA, consumers, macroalgae)
+
+CCA_mod <- cca(BD ~ nn_rate + nh4_rate +  hetero_rate+prot_rate+humics_rate +do_mg_l_rate, data = Day_rates %>%  
+                 filter(foundation_spp != "Ocean")%>%
+                 filter(before_after == "After")%>%
+                 drop_na(nn_rate, nh4_rate, do_mg_l_rate))
+plot(CCA_mod)
+
+summary(CCA_mod)
+
+adonis2(BD ~ nn_rate + nh4_rate +  hetero_rate+prot_rate+humics_rate+humics_rate +do_mg_l_rate , data = Day_rates %>%  
+         filter(foundation_spp != "Ocean")%>%
+         filter(before_after == "After")%>%
+         drop_na(nn_rate, nh4_rate, do_mg_l_rate))
+
+
+# vectors
+ccavectors <- as.matrix(scores(CCA_mod, display = "bp", scaling = "species")*2) %>% 
+  as.data.frame() %>%
+  mutate(nicenames = c("Nitrate+Nitrite <br> (&mu;mol L<sup>-1</sup>hr<sup>-1</sup>)",
+                       "Ammonium <br> (&mu;mol L<sup>-1</sup> hr<sup>-1</sup>)",
+                       "Heterotrophic Bacteria <br> (# mL<sup>-1</sup> hr<sup>-1</sup>)",
+                       "Humic-like fDOM <br> (raman units hr<sup>-1</sup>)",
+                       "Proteinaceous-like fDOM <br> (raman units hr<sup>-1</sup>)",
+                       "DO <br> (mg L<sup>-1</sup> hr<sup>-1</sup>)"
+                       )
+  )
+           
+
+# site coordinates
+site_data <- scores(CCA_mod, display = "sites") %>% 
+  as.data.frame() %>% 
+  bind_cols(Day_rates %>%  
+              filter(foundation_spp != "Ocean")%>%
+              filter(before_after == "After")%>%
+              drop_na(nn_rate, nh4_rate, do_mg_l_rate))
+
+# species coordinates
+species_data <- scores(CCA_mod, display = "species") %>% 
+  as.data.frame() %>%
+  mutate(names = c("% Mussels","% Surfgrass", "% Diatoms"," % CCA", "% Non-Mussel Inverts", "% Fleshy Macroalgae"))
+
+# plotting
+plot_cca <- ggplot(site_data) +
+  geom_point(aes(x = CCA1, y = CCA2), shape = 19, size = 2, alpha = 0.2) +
+  coord_fixed() +
+  geom_segment(data = ccavectors, aes(x = 0, y = 0, xend = CCA1, yend = CCA2), arrow = arrow(length = unit(0.2, "cm"))) +
+  geom_vline(xintercept = c(0), color = "grey70", linetype = 2) +
+  geom_hline(yintercept = c(0), color = "grey70", linetype = 2) +
+#  geom_text(data = species_data, aes(x = CCA1, y = CCA2, label = names),  size = 3, color = "slateblue") +
+  scale_x_continuous(limits = c(-2,2)) +
+#  scale_y_continuous(limits = c(-3, 12)) +
+  geom_richtext(data = ccavectors, aes(x = CCA1, y = CCA2, label = nicenames), nudge_x = 0.2, nudge_y = 0.2, fill = NA, label.color = NA) +
+  labs(title = "Canonical Correspondence Analysis",
+       x = "CCA 1 (44.5%)",
+       y = "CCA 2 (19.7%)")+
+  theme_bw()+
+  theme(panel.grid = element_blank())
+
+plot_cca
+
+plot_cca2 <- ggplot(site_data) +
+  geom_point(aes(x = CCA1, y = CCA2), shape = 19, size = 2, alpha = 0.2) +
+  coord_fixed() +
+#  geom_segment(data = ccavectors, aes(x = 0, y = 0, xend = CCA1, yend = CCA2), arrow = arrow(length = unit(0.2, "cm"))) +
+  geom_vline(xintercept = c(0), color = "grey70", linetype = 2) +
+  geom_hline(yintercept = c(0), color = "grey70", linetype = 2) +
+  geom_text(data = species_data, aes(x = CCA1, y = CCA2, label = names),  size = 3.5, color = "slateblue") +
+    scale_x_continuous(limits = c(-2, 2)) +
+  #  scale_y_continuous(limits = c(-3, 12)) +
+#  geom_richtext(data = ccavectors, aes(x = CCA1, y = CCA2, label = nicenames), nudge_x = 0.2, nudge_y = 0.2, fill = NA, label.color = NA) +
+  labs(title = "Canonical Correspondence Analysis",
+       x = "CCA 1 (44.5%)",
+       y = "CCA 2 (19.7%)")+
+  theme_bw()+
+  theme(panel.grid = element_blank())
+
+plot_cca|plot_cca2
+
+ggsave(here("Output","CCA_plot.png"), width = 12, height = 8)
+
+# comm<-Communitymetrics %>% 
+#   clean_names() %>%
+#   mutate(pool_id = as.character(pool_id))%>%
+#   left_join(Day_rates) %>%
+#   filter(day_night == "Day",
+#          before_after == "After") %>%
+#   drop_na(nn_rate, nh4_rate, do_mg_l_rate)%>%
+#     select(rock:stylantheca_spp) 
+#   
+#   
+#   
+# comm
+# 
+#   birdCCA <- cca(comm ~ nn_rate + nh4_rate +  hetero_rate+ mc_rate , data = Day_rates %>%  
+#                    filter(foundation_spp != "Ocean")%>%
+#                    filter(before_after == "After")%>%
+#                    drop_na(nn_rate, nh4_rate, do_mg_l_rate))
+# 
+#   plot(birdCCA)
+#   
