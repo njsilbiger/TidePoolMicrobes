@@ -3,7 +3,7 @@
 ### Created on 8/16/2023 #####
 
 
-### Load libraries
+### Load libraries   
 
 library(here)
 library(tidyverse)
@@ -51,6 +51,9 @@ data_all<-left_join(biogeodata, microbedata, by = "Id_code") %>%
   mutate(before_after = factor(before_after, levels = c("Before","After")))
 
 
+### export the joined data file ####
+write_csv(data_all, here("Data","Microbe_Clean","joinedData.csv"))
+
 ### Make a few visuals ####
 
 
@@ -80,7 +83,9 @@ data_all<-data_all %>%
 
 # boxplots showing only control pools for timepoints 1 and 4 in the after period.  Values are differences from the ocean   
 data_all  %>%
-  filter(foundation_spp !="Ocean", before_after !="Before", time_point !=5, removal_control == "Control") %>%
+  filter(foundation_spp !="Ocean", before_after !="Before", 
+         #time_point !=5, 
+         removal_control == "Control") %>%
   dplyr::select(pool_id, foundation_spp, day_night, time_point, do_change:phenyl_change)%>%
   mutate(nh4_change = ifelse(nh4_change>200, NA, nh4_change))%>% # drop the 2 crazy outliers
   pivot_longer(cols = do_change:phenyl_change, names_to = "parameter", values_to = "values") %>%
@@ -270,7 +275,7 @@ data_all %>%
   filter(day_night == "Day") %>%
   mutate(month = factor(ifelse(before_after == "Before", "July", "August (Upwelling)"), levels = c("July", "August (Upwelling)"))) %>%
   mutate(prot = tyrosine_like+tryptophan_like+ phenylalanine_like) %>%
-  select(month, do_mg_l,heterotrophic_bac_m_l=heterotrophic_bacterioplankton_m_l,temperature = temp_pool, nn_umol_l, nh4_umol_l) %>%
+  select(month, do_mg_l,heterotrophic_bac_m_l=heterotrophic_bacterioplankton_m_l,prot,temperature = temp_pool, nn_umol_l, nh4_umol_l) %>%
   pivot_longer(cols = do_mg_l:nh4_umol_l) %>%
   group_by(month, name)%>%
   summarise(mean_val = mean(value, na.rm = TRUE),
@@ -307,9 +312,22 @@ data_rates_before<-data_all%>%
           hetero_rate = (heterotrophic_bacterioplankton_m_l[time_point==5]-heterotrophic_bacterioplankton_m_l[time_point == 1])/difftime_hours5,
           syn_rate = (synechoococcus_m_l[time_point==5]-synechoococcus_m_l[time_point == 1])/difftime_hours5,
           auto_rate = (autotrophic_pico_eukaryotes_m_l[time_point==5]-autotrophic_pico_eukaryotes_m_l[time_point == 1])/difftime_hours5,
+          uv_rate = (ultra_violet_humic_like[time_point==5] - ultra_violet_humic_like[time_point == 1])/difftime_hours5,
+          mh_rate = (marine_humic_like[time_point==5] - marine_humic_like[time_point == 1])/difftime_hours5,
+          vh_rate = (visible_humic_like[time_point==5] - visible_humic_like[time_point == 1])/difftime_hours5,
+          tryp_rate = (tryptophan_like[time_point==5] - tryptophan_like[time_point == 1])/difftime_hours5,
+          tyro_rate = (tyrosine_like[time_point==5] - tyrosine_like[time_point == 1])/difftime_hours5,
+          phenyl_rate = (phenylalanine_like[time_point==5] - phenylalanine_like[time_point == 1])/difftime_hours5,
+          mc_rate = (m_c[time_point==5] - m_c[time_point == 1])/difftime_hours5,
+          bix_rate = (bix[time_point==5] - bix[time_point == 1])/difftime_hours5,
+          hix_rate = (hix[time_point==5] - hix[time_point == 1])/difftime_hours5,
+          fi_rate = (fi[time_point==5] - fi[time_point == 1])/difftime_hours5,
           .by = c(foundation_spp, removal_control, day_night, pool_id, sampling_group))%>%
   drop_na(foundation_spp) %>%
   mutate(before_after = "Before")
+
+
+
 
 data_rates_after<-data_all%>%
   ungroup()%>%
