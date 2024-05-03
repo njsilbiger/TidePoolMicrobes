@@ -200,10 +200,10 @@ data_long<-data_all %>%
 
 ### MAKE THIS PLOT PRETTY #######
 
-data_all %>%
+# All pools raw data, then control in Aug and removal in Aug
+data_long_day<-data_all %>%
   ungroup()%>%
-  filter(removal_control != "Removal") %>%
-   filter(day_night == "Day")  %>%
+  filter(day_night == "Day")  %>%
   mutate(prot = tyrosine_like+tryptophan_like+ phenylalanine_like,
          humic = ultra_violet_humic_like+visible_humic_like+marine_humic_like) %>%
   select(month, day_night, time_point,removal_control, foundation_spp,do_mg_l,heterotrophic_bacterioplankton_m_l:autotrophic_pico_eukaryotes_m_l,prot, humic, nn_umol_l, nh4_umol_l) %>%
@@ -211,20 +211,195 @@ data_all %>%
   group_by(month, name, foundation_spp,time_point, day_night, removal_control)%>%
   summarise(mean_val = mean(value, na.rm = TRUE),
             se_val= sd(value, na.rm = TRUE)/sqrt(n())) %>%
-  ggplot(aes(x = time_point, y = mean_val, color = foundation_spp, group = foundation_spp)
+  mutate(time_point_clean = ifelse(time_point == "start","Early", "Late"))%>%
+  mutate(nicenames = case_when(
+    name == "autotrophic_pico_eukaryotes_m_l" ~"Autotrophic <br> (# mL<sup>-1</sup>)",
+    name == "do_mg_l" ~ "DO <br> (mg L<sup>-1</sup>)",
+    name == "heterotrophic_bacterioplankton_m_l" ~ "Heterotrophic <br> (# mL<sup>-1</sup>)",
+    name == "synechoococcus_m_l" ~ "Synechoococcus <br> (# mL<sup>-1</sup>)",
+    name == "nh4_umol_l" ~ "Ammonium <br> (&mu;mol L<sup>-1</sup>)",
+    name == "po_umol_l" ~ "Phosphate <br> (&mu;mol L<sup>-1</sup>)",
+    name == "nn_umol_l" ~ "Nitrate+Nitrite <br> (&mu;mol L<sup>-1</sup>)",
+    name == "humic" ~ "Humic-like <br> (Raman units)",
+    name == "prot" ~ "Proteinaceous <br> (Raman units)")
+  ) %>%
+  mutate(nicenames = factor(nicenames, levels = c("DO <br> (mg L<sup>-1</sup>)",
+                                                  "Ammonium <br> (&mu;mol L<sup>-1</sup>)",
+                                                  "Nitrate+Nitrite <br> (&mu;mol L<sup>-1</sup>)",
+                                                  "Phosphate <br> (&mu;mol L<sup>-1</sup>)",
+                                                  "Autotrophic <br> (# mL<sup>-1</sup>)",
+                                                  "Synechoococcus <br> (# mL<sup>-1</sup>)",
+                                                  "Heterotrophic <br> (# mL<sup>-1</sup>)",
+                                                  "Humic-like <br> (Raman units)",
+                                                  "Proteinaceous <br> (Raman units)"
+                                                  
+                                                  
+  )))
+
+
+P_july<-data_all %>%
+  ungroup()%>%
+  filter(day_night == "Day")  %>%
+  mutate(prot = tyrosine_like+tryptophan_like+ phenylalanine_like,
+         humic = ultra_violet_humic_like+visible_humic_like+marine_humic_like) %>%
+  select(month, day_night, time_point,removal_control, foundation_spp,do_mg_l,heterotrophic_bacterioplankton_m_l:autotrophic_pico_eukaryotes_m_l,prot, humic, nn_umol_l, nh4_umol_l) %>%
+  pivot_longer(cols = do_mg_l:nh4_umol_l) %>%
+  group_by(month, name, foundation_spp,time_point, day_night)%>% ### all the pools together
+  summarise(mean_val = mean(value, na.rm = TRUE),
+            se_val= sd(value, na.rm = TRUE)/sqrt(n())) %>%
+  mutate(time_point_clean = ifelse(time_point == "start","Early", "Late"))%>%
+  mutate(nicenames = case_when(
+    name == "autotrophic_pico_eukaryotes_m_l" ~"Autotrophic <br> (# mL<sup>-1</sup>)",
+    name == "do_mg_l" ~ "DO <br> (mg L<sup>-1</sup>)",
+    name == "heterotrophic_bacterioplankton_m_l" ~ "Heterotrophic <br> (# mL<sup>-1</sup>)",
+    name == "synechoococcus_m_l" ~ "Synechoococcus <br> (# mL<sup>-1</sup>)",
+    name == "nh4_umol_l" ~ "Ammonium <br> (&mu;mol L<sup>-1</sup>)",
+    name == "po_umol_l" ~ "Phosphate <br> (&mu;mol L<sup>-1</sup>)",
+    name == "nn_umol_l" ~ "Nitrate+Nitrite <br> (&mu;mol L<sup>-1</sup>)",
+    name == "humic" ~ "Humic-like <br> (Raman units)",
+    name == "prot" ~ "Proteinaceous <br> (Raman units)")
+  ) %>%
+  mutate(nicenames = factor(nicenames, levels = c("DO <br> (mg L<sup>-1</sup>)",
+                                                  "Ammonium <br> (&mu;mol L<sup>-1</sup>)",
+                                                  "Nitrate+Nitrite <br> (&mu;mol L<sup>-1</sup>)",
+                                                  "Phosphate <br> (&mu;mol L<sup>-1</sup>)",
+                                                  "Autotrophic <br> (# mL<sup>-1</sup>)",
+                                                  "Synechoococcus <br> (# mL<sup>-1</sup>)",
+                                                  "Heterotrophic <br> (# mL<sup>-1</sup>)",
+                                                  "Humic-like <br> (Raman units)",
+                                                  "Proteinaceous <br> (Raman units)"
+                                                  
+                                                  
+  )))%>%
+  filter(month == "July",
+  ) %>%
+  ggplot(aes(x = time_point_clean, y = mean_val, color = foundation_spp, group = foundation_spp)
              #group = interaction(foundation_spp, removal_control))
          )+
   geom_point(size = 3)+
  # geom_point(data = data_long, aes(x = time_point, y = value))+
   geom_line()+
-  geom_errorbar(aes(x = time_point, ymin = mean_val - se_val, ymax = mean_val+se_val), width = 0.1)+
-  facet_wrap(name~month, scales = "free_y", strip.position = "left", ncol = 2)+
+  geom_errorbar(aes(x = time_point_clean, ymin = mean_val - se_val, ymax = mean_val+se_val), width = 0.1)+
+  facet_wrap(~nicenames, scales = "free_y", strip.position = "left", ncol = 1)+
+  facetted_pos_scales(
+    y = rep(list(
+      scale_y_continuous(limits=c(6, 25)),
+      scale_y_continuous(limits=c(0, 30)),
+      scale_y_continuous(limits=c(0, 16)),
+      scale_y_continuous(limits = c(0, 3)),
+      scale_y_continuous(limits=c(0, 6)),
+      scale_y_continuous(limits = c(0, 1000)),
+      scale_y_continuous(limits = c(0, 0.6)),
+      scale_y_continuous(limits=c(0, 2))
+
+    ), each = 1))+
   labs(x = "",
        y = "",
-       title = "Mean values")+
+       color = "",
+       title = "Before \n (July)")+
+  scale_color_manual(values = c("grey30","#79ACBD","#567d46"))+
   theme_bw()+
   theme(strip.background = element_blank(),
-        strip.placement = "outside")
+        strip.placement = "outside",
+        strip.text.y.left = element_markdown(size = 14),
+        axis.text = element_text(size = 12),
+        axis.text.x = element_text(face = "bold"),
+        axis.title = element_text(size = 14, face = "bold"),
+        legend.position = "bottom",
+        legend.text = element_text(size = 14), 
+        plot.title = element_text(hjust = 0.5, size = 14)
+          )
+
+# August control
+P_Aug_control<-data_long_day %>%
+  filter(month != "July",
+         removal_control != "Removal"
+  ) %>%
+  ggplot(aes(x = time_point_clean, y = mean_val, color = foundation_spp, group = foundation_spp)
+         #group = interaction(foundation_spp, removal_control))
+  )+
+  geom_point(size = 3)+
+  # geom_point(data = data_long, aes(x = time_point, y = value))+
+  geom_line()+
+  geom_errorbar(aes(x = time_point_clean, ymin = mean_val - se_val, ymax = mean_val+se_val), width = 0.1)+
+  facet_wrap(~nicenames, scales = "free_y", strip.position = "left", ncol = 1)+
+  facetted_pos_scales(
+    y = rep(list(
+      scale_y_continuous(limits=c(6, 25)),
+      scale_y_continuous(limits=c(0, 30)),
+      scale_y_continuous(limits=c(0, 16)),
+      scale_y_continuous(limits = c(0, 3)),
+      scale_y_continuous(limits=c(0, 6)),
+      scale_y_continuous(limits = c(0, 1000)),
+      scale_y_continuous(limits = c(0, 0.6)),
+      scale_y_continuous(limits=c(0, 2))
+      
+    ), each = 1))+
+  labs(x = "",
+       y = "",
+       color = "",
+       title = "After Control \n (August upwelling)")+
+  scale_color_manual(values = c("grey30","#79ACBD","#567d46"))+
+  theme_bw()+
+  theme(strip.background = element_blank(),
+        strip.placement = "outside",
+        strip.text.y.left = element_markdown(size = 14),
+        strip.text = element_blank(),
+        axis.text = element_text(size = 12),
+        axis.text.x = element_text(face = "bold"),
+        axis.title = element_text(size = 14, face = "bold"),
+        legend.position = "bottom",
+        legend.text = element_text(size = 14), 
+        plot.title = element_text(hjust = 0.5, size = 14)
+  )
+
+# August impact
+
+P_Aug_impact<-data_long_day %>%
+  filter(month != "July",
+         removal_control != "Control"
+  ) %>%
+  ggplot(aes(x = time_point_clean, y = mean_val, color = foundation_spp, group = foundation_spp)
+         #group = interaction(foundation_spp, removal_control))
+  )+
+  geom_point(size = 3)+
+  # geom_point(data = data_long, aes(x = time_point, y = value))+
+  geom_line()+
+  geom_errorbar(aes(x = time_point_clean, ymin = mean_val - se_val, ymax = mean_val+se_val), width = 0.1)+
+  facet_wrap(~nicenames, scales = "free_y", strip.position = "left", ncol = 1)+
+  facetted_pos_scales(
+    y = rep(list(
+      scale_y_continuous(limits=c(6, 25)),
+      scale_y_continuous(limits=c(0, 30)),
+      scale_y_continuous(limits=c(0, 16)),
+      scale_y_continuous(limits = c(0, 3)),
+      scale_y_continuous(limits=c(0, 6)),
+      scale_y_continuous(limits = c(0, 1000)),
+      scale_y_continuous(limits = c(0, 0.6)),
+      scale_y_continuous(limits=c(0, 2))
+      
+    ), each = 1))+
+  labs(x = "",
+       y = "",
+       color = "",
+       title = "After Impact \n (August upwelling)")+
+  scale_color_manual(values = c("grey30","#79ACBD","#567d46"))+
+  theme_bw()+
+  theme(strip.background = element_blank(),
+        strip.placement = "outside",
+        strip.text.y.left = element_markdown(size = 14),
+        strip.text = element_blank(),
+        axis.text = element_text(size = 12),
+        axis.text.x = element_text(face = "bold"),
+        axis.title = element_text(size = 14, face = "bold"),
+        legend.position = "bottom",
+        legend.text = element_text(size = 14), 
+        plot.title = element_text(hjust = 0.5, size = 14)
+  )
+
+
+P_july|P_Aug_control|P_Aug_impact+plot_layout(guides = "collect")&theme(legend.position = "bottom")
+ggsave(here("Output","mean_chem.pdf"), width = 10, height = 16)
 
 ### create a function that calculated difference between start and end values for each tide pool
 
