@@ -465,6 +465,28 @@ mean_rates<-Rates %>%
             mean_value_m2 = mean(rate_m2_hr, na.rm = TRUE),
             se_value_m2 = sd(rate_m2_hr, na.rm = TRUE)/sqrt(n()))
 
+### have all the before data be averaged out
+mean_rates_before<-Rates %>%
+  filter(before_after == "Before")%>%
+  mutate(before_after = factor(before_after, levels = c("Before","After")))%>%
+  group_by(foundation_spp, day_night, before_after,name)%>%
+  summarise(mean_value = mean(rate_hr, na.rm = TRUE),
+            se_value = sd(rate_hr, na.rm = TRUE)/sqrt(n()),
+            mean_value_m2 = mean(rate_m2_hr, na.rm = TRUE),
+            se_value_m2 = sd(rate_m2_hr, na.rm = TRUE)/sqrt(n()))
+
+
+
+# repeat it so that removal and control are on there twice to make it easier to plot
+mean_rates_before<-mean_rates_before %>%
+  mutate(removal_control = ifelse(foundation_spp == "Ocean", "Ocean","Control"))%>%
+  bind_rows(mean_rates_before %>%
+              mutate(removal_control = ifelse(foundation_spp == "Ocean", "Ocean","Removal")))
+
+# bring before and after together
+mean_rates<-mean_rates %>%
+  filter(before_after != "Before") %>%
+  bind_rows(mean_rates_before)
 
 # rename the foundation species for the ocean to have one group for mussels and one for phyllo for easier plotting
 myt_ocean<-mean_rates %>%
@@ -489,55 +511,63 @@ mean_plot<-mean_rates %>%
     name == "nh4_umol_l" ~ "Ammonium <br> (&mu;mol L<sup>-1</sup> hr<sup>-1</sup>)",
     name == "po_umol_l" ~ "Phosphate <br> (&mu;mol L<sup>-1</sup> hr<sup>-1</sup>)",
     name == "nn_umol_l" ~ "Nitrate+Nitrite <br> (&mu;mol L<sup>-1</sup>hr<sup>-1</sup>)",
-    name == "humic" ~ "Humic_like <br> (Raman units hr<sup>-1</sup>)",
+    name == "humic" ~ "Humic-like <br> (Raman units hr<sup>-1</sup>)",
 name == "prot" ~ "Proteinaceous <br> (Raman units hr<sup>-1</sup>)")
 )
 
 # make a set of reaction norm plots for the day
-day_plot<-mean_plot %>%
+meandata<-mean_plot %>%
   filter(day_night == "Day",
-         !name %in% c("fi","hix","m_c","bix") )%>%
+         !name %in% c("fi","hix","m_c","bix", "po_umol_l") )%>%
   # filter(name %in% c(
   #   "hetero_rate","do_mg_l_rate",
   #   "nh4_rate","nn_rate"))%>%
   mutate(nicenames = factor(nicenames, levels = c("DO <br> (mg L<sup>-1</sup> hr<sup>-1</sup>)",
                                                   "Ammonium <br> (&mu;mol L<sup>-1</sup> hr<sup>-1</sup>)",
                                                   "Nitrate+Nitrite <br> (&mu;mol L<sup>-1</sup>hr<sup>-1</sup>)",
-                                                  "Phosphate <br> (&mu;mol L<sup>-1</sup> hr<sup>-1</sup>)",
+                                                 # "Phosphate <br> (&mu;mol L<sup>-1</sup> hr<sup>-1</sup>)",
                                                   "Autotrophic <br> (# mL<sup>-1</sup> hr<sup>-1</sup>)",
                                                   "Synechoococcus <br> (# mL<sup>-1</sup> hr<sup>-1</sup>)",
                                                   "Heterotrophic <br> (# mL<sup>-1</sup> hr<sup>-1</sup>)",
-                                                  "Humic_like <br> (Raman units hr<sup>-1</sup>)",
+                                                  "Humic-like <br> (Raman units hr<sup>-1</sup>)",
                                                   "Proteinaceous <br> (Raman units hr<sup>-1</sup>)"
                                                   
     
   )))%>%
-  ggplot(aes(x = before_after, y = mean_value, color = removal_control, group = removal_control, shape = removal_control))+
+  mutate(month = ifelse(before_after == "Before", "July", "August (Upwelling)"),
+         month = factor(month, levels = c("July","August (Upwelling)")))
+
+# mussels
+
+  day_plot_mussel<-meandata %>%
+    filter(foundation_spp == "Mytilus") %>%
+    ggplot(aes(x = month, y = mean_value, color = removal_control, group = removal_control, shape = removal_control))+
   geom_hline(yintercept = 0, lty = 2)+
   geom_point(size = 3)+
-  geom_errorbar(aes(x = before_after, y = mean_value, ymin = mean_value-se_value, ymax = mean_value+se_value), width = 0.01)+
+  geom_errorbar(aes(x = month, y = mean_value, ymin = mean_value-se_value, ymax = mean_value+se_value), width = 0.01)+
   geom_line()+
   labs(x = "",
        y = "", 
        color = "",
-       shape = "")+
+       shape = "",
+       title = "Mussels")+
   scale_color_manual(values = c("grey30","#79ACBD","grey30"))+
   scale_shape_manual(values = c(16,16,1))+
   #facet_nested_wrap(vars(nicenames,foundation_sp), scales = "free", ncol = 2)
-  facet_wrap(nicenames~foundation_spp, scales = "free_y", ncol = 2, strip.position = "left")+
+  facet_wrap(~nicenames, scales = "free_y", ncol = 1, strip.position = "left")+
   facetted_pos_scales(
     y = rep(list(
       scale_y_continuous(limits=c(-0.5, 4)),
-      scale_y_continuous(limits=c(-1, 5)),
+      scale_y_continuous(limits=c(-0.5, 3.5)),
       scale_y_continuous(limits=c(-1.5, 2.5)),
-      scale_y_continuous(limits = c(-0.2, 0.4)),
+     # scale_y_continuous(limits = c(-0.2, 0.4)),
       scale_y_continuous(limits=c(-0.25, 0.25)),
       scale_y_continuous(limits = c(-0.3, 0.2)),
       scale_y_continuous(limits = c(-75, 150)),
       scale_y_continuous(limits=c(-0.01, 0.08)),
       scale_y_continuous(limits=c(-0.1, 0.2))
       
-    ), each = 2))+
+    ), each = 1))+
   theme_bw()+
   theme(strip.text.y.left  = ggtext::element_markdown(size = 16),
         strip.text.x = element_blank(),
@@ -548,10 +578,59 @@ day_plot<-mean_plot %>%
         legend.text = element_text(size = 14),
         legend.position = "bottom",
         legend.direction = "horizontal",
-        legend.justification = "left")
+        legend.justification = "left", 
+        plot.title = element_text(hjust = 0.5, size = 14))
+ 
 
-day_plot
-ggsave(plot = day_plot, filename = here("Output","AllRates.pdf"), width = 8, height = 18)
+
+
+# now surfgrass
+
+day_plot_surfgrass<-meandata %>%
+  filter(foundation_spp == "Phyllospadix") %>%
+  ggplot(aes(x = month, y = mean_value, color = removal_control, group = removal_control, shape = removal_control))+
+  geom_hline(yintercept = 0, lty = 2)+
+  geom_point(size = 3)+
+  geom_errorbar(aes(x = month, y = mean_value, ymin = mean_value-se_value, ymax = mean_value+se_value), width = 0.01)+
+  geom_line()+
+  labs(x = "",
+       y = "", 
+       color = "",
+       shape = "",
+       title = "Surfgrass")+
+  scale_color_manual(values = c("#567d46","#79ACBD","#567d46"))+
+  scale_shape_manual(values = c(16,16,1))+
+  #facet_nested_wrap(vars(nicenames,foundation_sp), scales = "free", ncol = 2)
+  facet_wrap(~nicenames, scales = "free_y", ncol = 1, strip.position = "left")+
+  facetted_pos_scales(
+    y = rep(list(
+      scale_y_continuous(limits=c(-0.5, 4)),
+      scale_y_continuous(limits=c(-0.5, 3.5)),
+      scale_y_continuous(limits=c(-1.5, 2.5)),
+      # scale_y_continuous(limits = c(-0.2, 0.4)),
+      scale_y_continuous(limits=c(-0.25, 0.25)),
+      scale_y_continuous(limits = c(-0.3, 0.2)),
+      scale_y_continuous(limits = c(-75, 150)),
+      scale_y_continuous(limits=c(-0.01, 0.08)),
+      scale_y_continuous(limits=c(-0.1, 0.2))
+      
+    ), each = 1))+
+  theme_bw()+
+  theme(strip.text.y.left  = element_blank(),
+        strip.placement = "outside",
+     #   strip.text.y = element_blank(),
+        axis.title = element_text(size = 14),
+        axis.text = element_text(size = 14),
+        strip.background = element_blank(),
+        legend.text = element_text(size = 14),
+        legend.position = "bottom",
+        legend.direction = "horizontal",
+        legend.justification = "left", 
+        plot.title = element_text(hjust = 0.5, size = 14))
+
+day_plot_mussel|day_plot_surfgrass+plot_layout(guides = "collect")&theme(legend.position = "bottom")
+
+ggsave(filename = here("Output","AllRates.pdf"), width = 8, height = 18)
 
 # make a set of reaction norm plots for the night
 night_plot<-mean_plot %>%
