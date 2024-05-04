@@ -979,3 +979,102 @@ DO_humic_mod<-lm(data = Day_rates_wide %>%
                    filter(month == "July"), humic~do_mg_l)
 
 anova(DO_humic_mod)
+
+
+##DO and Hetero
+P_HDO<-Day_rates_wide %>%  
+  mutate(removal = case_when(removal_control == "Control"~"Unmanipulated",
+                             removal_control == "Removal"& month == "July" ~ "Unmanipulated",
+                             removal_control == "Removal"& month != "July" ~ "Foundation spp. removed"))%>%
+  mutate(removal = factor(removal, levels = c("Unmanipulated","Foundation spp. removed")))%>%
+  filter(foundation_spp != "Ocean")%>%
+  ggplot(aes(y = heterotrophic_bacterioplankton_m_l, x = do_mg_l))+
+  geom_hline(aes(yintercept  = 0), lty = 2)+
+  geom_vline(aes(xintercept  = 0), lty = 2)+
+  geom_point(alpha = 0.5, aes(color = month))+
+  # geom_text(aes(x = 175, y = 0.1, label = "p = 0.036"))+
+#  ylim(-.3,.3)+
+  geom_smooth(method = "lm", color = "black",
+              data = Day_rates_wide %>%  
+                mutate(removal = case_when(removal_control == "Control"~"Unmanipulated",
+                                           removal_control == "Removal"& month == "July" ~ "Unmanipulated",
+                                           removal_control == "Removal"& month != "July" ~ "Foundation spp. removed"))%>%
+                mutate(removal = factor(removal, levels = c("Unmanipulated","Foundation spp. removed")))%>%
+                filter(foundation_spp != "Ocean",
+                       removal == "Unmanipulated"))+
+  scale_color_manual(values = c("grey","grey8"))+
+  labs(y = "Heterotrophic bacterial production <br> (# mL<sup>-1</sup> hr<sup>-1</sup>)",
+       x = "DO production <br> (mg L<sup>-1</sup> hr<sup>-1</sup>)",
+       color = "")+
+  facet_wrap(~removal, scales = "free_x")+
+  theme_bw()+
+  theme(panel.grid = element_blank(),
+        axis.title.x = element_markdown(size = 14),
+        axis.title.y = element_markdown(size = 14),
+        axis.text = element_text(size = 12),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 14),
+        legend.text = element_text(size = 14)
+  )
+ggsave(here("Output","het_DO_regression.png"), width = 8, height = 4)
+
+
+DO_het_mod<-lm(data = Day_rates_wide %>%  
+                 mutate(removal = case_when(removal_control == "Control"~"Unmanipulated",
+                                            removal_control == "Removal"& month == "July" ~ "Unmanipulated",
+                                            removal_control == "Removal"& month != "July" ~ "Foundation spp. removed"))%>%
+                 mutate(removal = factor(removal, levels = c("Unmanipulated","Foundation spp. removed")))%>%
+                 filter(foundation_spp != "Ocean"), heterotrophic_bacterioplankton_m_l~do_mg_l*removal)
+
+anova(DO_het_mod)
+summary(DO_het_mod)
+
+#### Het and Syn
+##DO and Hetero
+P_HPico<-Day_rates_wide %>%  
+  mutate(removal = case_when(removal_control == "Control"~"Unmanipulated",
+                             removal_control == "Removal"& month == "July" ~ "Unmanipulated",
+                             removal_control == "Removal"& month != "July" ~ "Foundation spp. removed"))%>%
+  mutate(removal = factor(removal, levels = c("Unmanipulated","Foundation spp. removed")))%>%
+  filter(foundation_spp != "Ocean")%>%
+  ggplot(aes(x = heterotrophic_bacterioplankton_m_l, y = autotrophic_pico_eukaryotes_m_l))+
+  geom_hline(aes(yintercept  = 0), lty = 2)+
+  geom_vline(aes(xintercept  = 0), lty = 2)+
+  geom_point(alpha = 0.5,aes(color = month))+
+  # geom_text(aes(x = 175, y = 0.1, label = "p = 0.036"))+
+  #  ylim(-.3,.3)+
+  geom_smooth(method = "lm", 
+              data = Day_rates_wide %>%  
+                mutate(removal = case_when(removal_control == "Control"~"Unmanipulated",
+                                           removal_control == "Removal"& month == "July" ~ "Unmanipulated",
+                                           removal_control == "Removal"& month != "July" ~ "Foundation spp. removed"))%>%
+                mutate(removal = factor(removal, levels = c("Unmanipulated","Foundation spp. removed")))%>%
+                filter(foundation_spp != "Ocean",
+                       removal == "Unmanipulated"), color = "black")+
+  scale_color_manual(values = c("grey","grey8"))+
+  labs(x = "Heterotrophic bacterial production <br> (# mL<sup>-1</sup> hr<sup>-1</sup>)",
+       y = "Auotrophic picoeukaryotes production <br> (# mL<sup>-1</sup> hr<sup>-1</sup>)",
+       color = "")+
+  facet_wrap(~removal, scales = "free_x")+
+  theme_bw()+
+  theme(panel.grid = element_blank(),
+        axis.title.x = element_markdown(size = 14),
+        axis.title.y = element_markdown(size = 14),
+        axis.text = element_text(size = 12),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 14),
+        legend.text = element_text(size = 14)
+  )
+
+DO_het_pico<-lm(data = Day_rates_wide %>%  
+                 mutate(removal = case_when(removal_control == "Control"~"Unmanipulated",
+                                            removal_control == "Removal"& month == "July" ~ "Unmanipulated",
+                                            removal_control == "Removal"& month != "July" ~ "Foundation spp. removed"))%>%
+                 mutate(removal = factor(removal, levels = c("Unmanipulated","Foundation spp. removed")))%>%
+                 filter(foundation_spp != "Ocean"), heterotrophic_bacterioplankton_m_l~autotrophic_pico_eukaryotes_m_l*removal)
+
+anova(DO_het_pico)
+summary(DO_het_pico)
+
+P_HDO/P_HPico+plot_layout(guides = "collect")
+ggsave(here("output","top_bottom_regress.pdf"), width = 8, height = 8, useDingbats = FALSE)
