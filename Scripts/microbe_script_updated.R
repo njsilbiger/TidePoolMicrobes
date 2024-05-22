@@ -706,7 +706,7 @@ data_end %>%
   geom_errorbar(aes(ymin = estimate - std.error, ymax = estimate+std.error), width = 0.1)+
   facet_wrap(~time_point)
 
-
+### TRY JUST LOOKING AT CONTROL POOLS FOR SPECIES AND UPWELLING IMPACTS, THEN JUST THE AFTER SET WITH AND W/O BACI
 
 a<-lm(value_diff_scale ~ removal_control, data = data_end %>% filter(name == "nh4_umol_l", foundation_spp == "Mytilus"))
 anova(a)
