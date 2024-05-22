@@ -16,6 +16,7 @@ library(vegan)
 library(broom)
 library(broom.mixed)
 library(ggh4x)
+library(brms)
 
 
 ### read in data #########
@@ -28,7 +29,7 @@ data_all<-read_csv(here("Data","Microbe_Clean","joinedData_edited.csv"))
 
 ### show difference from the ocean
 data_all<-data_all %>%
-  mutate(nh4_umol_l = ifelse(nh4_umol_l>200, NA, nh4_umol_l),
+  mutate(nh4_umol_l = ifelse(nh4_umol_l>60, NA, nh4_umol_l),
          synechoococcus_m_l = ifelse(synechoococcus_m_l>50, NA, synechoococcus_m_l)) %>% # drop the 2 crazy outliers
   mutate(time_point = factor(time_point, levels = c("start","end")))%>%
   #  filter(sampling_day !=ymd("2019-07-11"), time_point != 5)%>%
@@ -593,12 +594,12 @@ mean_plot %>%
     
   )))%>%
  # filter(foundation_spp == "Mytilus") %>%
-  ggplot(aes(x = month, y = mean_value_m2, color = foundation_spp, 
+  ggplot(aes(x = month, y = mean_value, color = foundation_spp, 
              group = interaction(removal_control, foundation_spp), 
              shape = removal_control))+
   geom_hline(yintercept = 0, lty = 2)+
   geom_point(size = 3)+
-  geom_errorbar(aes(x = month, y = mean_value_m2, ymin = mean_value_m2-se_value_m2, ymax = mean_value_m2+se_value_m2), width = 0.01)+
+  geom_errorbar(aes(x = month, y = mean_value, ymin = mean_value-se_value, ymax = mean_value+se_value), width = 0.01)+
   geom_line()+
   labs(x = "",
        y = "", 
@@ -609,15 +610,15 @@ mean_plot %>%
   scale_color_manual(values = c("grey30","#567d46"))+
   scale_shape_manual(values = c(16,1))+
   facet_wrap(nicenames~foundation_spp, scales = "free_y", ncol = 2, strip.position = "left")+
-  facetted_pos_scales(
-    y = rep(list(
-      scale_y_continuous(limits=c(0, 0.3)),
-      scale_y_continuous(limits=c(-0.2, 0.2)),
-      scale_y_continuous(limits=c(-0.01, 0.001)),
-       scale_y_continuous(limits = c(-0.01, 0.005)),
- #     scale_y_continuous(limits=c(-0.006, 0.006)),
-      scale_y_continuous(limits = c(-5000, 10000))
-     ), each = 2))+
+ #  facetted_pos_scales(
+ #    y = rep(list(
+ #      scale_y_continuous(limits=c(0, 0.3)),
+ #      scale_y_continuous(limits=c(-0.2, 0.2)),
+ #      scale_y_continuous(limits=c(-0.01, 0.001)),
+ #       scale_y_continuous(limits = c(-0.01, 0.005)),
+ # #     scale_y_continuous(limits=c(-0.006, 0.006)),
+ #      scale_y_continuous(limits = c(-5000, 10000))
+ #     ), each = 2))+
   theme_bw()+
   theme(strip.text.y.left  = ggtext::element_markdown(size = 16),
         strip.text.x = element_blank(),
@@ -636,30 +637,248 @@ mean_plot %>%
 Rates %>%
   filter(day_night == "Day",
          foundation_spp != "Ocean",
-         removal_control != "Ocean",
-         name %in% c("m_c","bix", "nn_umol_l","heterotrophic_bacterioplankton_m_l","nh4_umol_l") )%>%
-  ungroup()%>%
-  group_by(foundation_spp,name )%>%
+         removal_control != "Ocean")%>%
+  group_by(foundation_spp, pool_id,removal_control,name) %>%
+  reframe(rate_diff = rate_hr[before_after == "After"] - rate_hr[before_after == "Before"]) %>%
+  ungroup() %>%
+#  filter(before_after == "After")%>%
+  filter(name %in% c("m_c","bix", "nn_umol_l","heterotrophic_bacterioplankton_m_l","nh4_umol_l", "fi", "prot","humic") )%>%
+  group_by(name,foundation_spp )%>%
+  mutate(rate_diff_scale = as.numeric(scale(rate_diff, scale = TRUE,center = TRUE))) %>%
   nest() %>%
   mutate(model = map(data, 
                      function(df) {
-                       lmer(rate_m2_hr ~ removal_control*before_after+(1|pool_id), data = df)
+                       lm(rate_diff_scale  ~ removal_control, data = df)
+                     })) %>%
+  mutate(
+    tidy = map(model, tidy),
+    glance = map(model, glance)
+  )%>%
+  unnest(tidy)%>%
+  filter(#p.value <=  0.05,
+    term != "(Intercept)",
+   #  name !="heterotrophic_bacterioplankton_m_l"
+  ) %>%
+  ggplot(aes(x = name, y = estimate, color = foundation_spp))+
+  geom_point()+
+  geom_errorbar(aes(ymin = estimate - std.error, ymax = estimate+std.error), width = 0.1)
+
+
+### run ANOVA with the raw data
+
+data_end<-data_all %>%
+  ungroup()%>%
+  filter(day_night == "Day",
+         foundation_spp != "Ocean"
+         )  %>%
+  mutate(prot = tyrosine_like+tryptophan_like+ phenylalanine_like,
+         humic = ultra_violet_humic_like+visible_humic_like+marine_humic_like) %>%
+  select(month,pool_id, day_night, time_point,removal_control, foundation_spp,do_mg_l,heterotrophic_bacterioplankton_m_l:autotrophic_pico_eukaryotes_m_l,prot, humic,m_c, bix, hix,fi, nn_umol_l, nh4_umol_l) %>%
+  pivot_longer(cols = do_mg_l:nh4_umol_l) %>%
+  group_by(foundation_spp, pool_id,removal_control,name, time_point) %>%
+  # reframe(value_diff = value[month == "August (Upwelling)"] - value[month == "July"]) %>%
+  # ungroup() %>%
+  filter(month == "August (Upwelling)")%>%
+   group_by(foundation_spp, name)%>%
+  #mutate(value_diff_scale = as.numeric(scale(value_diff, scale = TRUE,center = TRUE))) %>%
+  mutate(value_scale = as.numeric(scale(value, scale = TRUE,center = TRUE))) %>%
+  ungroup()
+  #filter(time_point == "start")
+
+data_end %>%
+  group_by(foundation_spp,name, time_point)%>%
+  nest() %>%
+  mutate(model = map(data, 
+                     function(df) {
+                       lm(value_scale~ removal_control, data = df) #log transformed log(abs(value_diff_scale))*sign(value_diff_scale) 
                      })) %>%
   mutate(
     tidy = map(model, tidy),
     glance = map(model, glance)
   )%>%
   unnest(tidy) %>%
-  filter(p.value <=  0.05)
+  filter(#p.value <=  0.05,
+         term != "(Intercept)",
+        # name !="heterotrophic_bacterioplankton_m_l"
+         ) %>%
+  ggplot(aes(x = name, y = estimate, color = foundation_spp))+
+  geom_point()+
+  geom_errorbar(aes(ymin = estimate - std.error, ymax = estimate+std.error), width = 0.1)+
+  facet_wrap(~time_point)
+
+
+
+a<-lm(value_diff_scale ~ removal_control, data = data_end %>% filter(name == "nh4_umol_l", foundation_spp == "Mytilus"))
+anova(a)
+summary(a)
+emmeans::emmeans(object = a,specs = c("removal_control"))
   
+### normalize to the ocean ####
+data_norm<-data_all %>%
+  ungroup()%>%
+  filter(day_night == "Day",
+          foundation_spp == "Ocean"
+  )  %>%
+  mutate(prot = tyrosine_like+tryptophan_like+ phenylalanine_like,
+         humic = ultra_violet_humic_like+visible_humic_like+marine_humic_like) %>%
+  select(month,pool_id, day_night, time_point,removal_control, foundation_spp,do_mg_l,heterotrophic_bacterioplankton_m_l:autotrophic_pico_eukaryotes_m_l,prot,bix, m_c, hix, fi, humic, nn_umol_l, nh4_umol_l) %>%
+  pivot_longer(cols = do_mg_l:nh4_umol_l) %>%
+  group_by(name, month, time_point) %>%
+  summarise(ocean_mean = mean(value, na.rm = TRUE)) %>%
+  left_join(data_all %>%
+              ungroup()%>%
+              filter(day_night == "Day",
+                     foundation_spp != "Ocean"
+              )  %>%
+              mutate(prot = tyrosine_like+tryptophan_like+ phenylalanine_like,
+                     humic = ultra_violet_humic_like+visible_humic_like+marine_humic_like) %>%
+              select(month,pool_id, day_night, time_point,removal_control, foundation_spp,do_mg_l,heterotrophic_bacterioplankton_m_l:autotrophic_pico_eukaryotes_m_l,prot,bix, m_c, hix, fi, humic, nn_umol_l, nh4_umol_l) %>%
+              pivot_longer(cols = do_mg_l:nh4_umol_l)) %>%
+  mutate(value_norm = value - ocean_mean)
+
+
+### make the rates but normalized to the ocean
+rate_norm<-data_all%>%
+  ungroup()%>%
+  mutate(prot = tyrosine_like+tryptophan_like+ phenylalanine_like,
+         humic = ultra_violet_humic_like+visible_humic_like+marine_humic_like,
+         allfDOM = prot+humic) %>%
+  #mutate(sampling_datetime = as.numeric(mdy_hms(paste(sampling_day, sampling_time)))) %>% 
+  select(pool_id:removal_control, time_point, do_mg_l, po_umol_l:nh4_umol_l, heterotrophic_bacterioplankton_m_l:fi, prot, humic,allfDOM) %>%
+  mutate(heterotrophic_bacterioplankton_m_l = heterotrophic_bacterioplankton_m_l *1000, # convert to per L
+         autotrophic_pico_eukaryotes_m_l =  autotrophic_pico_eukaryotes_m_l*1000,
+         synechoococcus_m_l = synechoococcus_m_l*1000
+  )%>%
+  pivot_longer(cols = do_mg_l:allfDOM)%>%
+  group_by(name, before_after, time_point) %>%
+  summarise(ocean_mean = mean(value, na.rm = TRUE)) %>%
+  left_join(data_all%>%
+              ungroup()%>%
+              mutate(prot = tyrosine_like+tryptophan_like+ phenylalanine_like,
+                     humic = ultra_violet_humic_like+visible_humic_like+marine_humic_like,
+                     allfDOM = prot+humic) %>%
+              #mutate(sampling_datetime = as.numeric(mdy_hms(paste(sampling_day, sampling_time)))) %>% 
+              select(pool_id:removal_control, time_point, do_mg_l, po_umol_l:nh4_umol_l, heterotrophic_bacterioplankton_m_l:fi, prot, humic,allfDOM) %>%
+              mutate(heterotrophic_bacterioplankton_m_l = heterotrophic_bacterioplankton_m_l *1000, # convert to per L
+                     autotrophic_pico_eukaryotes_m_l =  autotrophic_pico_eukaryotes_m_l*1000,
+                     synechoococcus_m_l = synechoococcus_m_l*1000
+              )%>%
+              pivot_longer(cols = do_mg_l:allfDOM)) %>%
+  filter(foundation_spp != "Ocean")%>%
+  mutate(value_norm = value - ocean_mean) %>%
+  group_by(pool_id, before_after, removal_control,day_night, foundation_spp, sampling_group, name) %>%
+  reframe(change = change_val(value_norm, time_point)) %>% # calculate the difference between start and end
+  left_join(times)%>%# join with the times
+  left_join(MetaData %>%
+              clean_names %>%
+              mutate(pool_id = as.character(pool_id)) %>%
+              select(pool_id, before_after, surface_area,vol))%>% # add in the tide pool info
+  mutate(rate_hr = change/diff_time,# difference in value per hour
+         rate_m2_hr = rate_hr*vol/surface_area
+  )
+
+#### run two-way anovas
+rate_norm %>%
+  filter(day_night == "Day",
+         foundation_spp != "Ocean",
+         removal_control != "Ocean")%>%
+  group_by(foundation_spp, pool_id,removal_control,name) %>%
+  reframe(Rate_diff = rate_m2_hr[before_after == "After"] - rate_m2_hr[before_after == "Before"]) %>%
+  ungroup() %>%
+  filter(name %in% c("m_c","bix", "nn_umol_l","heterotrophic_bacterioplankton_m_l","nh4_umol_l", "fi") )%>%
+  ungroup()%>%
+  group_by(foundation_spp,name )%>%
+  nest() %>%
+  mutate(model = map(data, 
+                     function(df) {
+                       lm(Rate_diff ~ removal_control, data = df)
+                     })) %>%
+  mutate(
+    tidy = map(model, tidy),
+    glance = map(model, glance)
+  )%>%
+  unnest(glance) %>%
+  filter(p.value <=  0.05)
+
+
+####
+
+data_norm %>%
+  group_by(foundation_spp, pool_id,removal_control,name, time_point) %>%
+  reframe(value_diff = value_norm[month == "August (Upwelling)"] - value_norm[month == "July"]) %>%
+  ungroup() %>%
+  group_by(foundation_spp,name, time_point)%>%
+  nest() %>%
+  mutate(model = map(data, 
+                     function(df) {
+                       lm(value_diff ~ removal_control, data = df)
+                     })) %>%
+  mutate(
+    tidy = map(model, tidy),
+    glance = map(model, glance)
+  )%>%
+  unnest(glance) %>%
+  filter(p.value <=  0.05)
+
+data_norm %>%
+  group_by(foundation_spp, pool_id,removal_control,name, time_point) %>%
+  reframe(value_diff = value_norm[month == "August (Upwelling)"] - value_norm[month == "July"]) %>%
+  ungroup() %>%
+  ggplot(aes(x = time_point, y = value_diff, color = removal_control))+
+  geom_point()+
+  facet_wrap(name~foundation_spp, scale = "free")
+
+#### ONE SAMPLE T-TEST TO SEE OF THE VALUES ARE DIFFERENT FROM THE OCEAN i.e. not 0
+data_norm %>%
+  group_by(foundation_spp, month, removal_control,name, time_point) %>%
+  nest() %>%
+  mutate(model = map(data, 
+                     ~t.test(.x$value_norm, mu = 0))) %>%
+  mutate(
+    tidy = map(model, tidy),
+    glance = map(model, glance)
+  )%>%
+  unnest(glance) %>%
+  filter(p.value <=  0.05,
+         time_point == "start") %>%
+  ggplot(aes(x = month, color = removal_control, y = estimate))+
+  geom_point()+
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.1)+
+  geom_hline(yintercept = 0)+
+  facet_wrap(name~foundation_spp, scale = "free_y")
+
+
+###### rates norm
+Rates %>%
+  group_by(foundation_spp, before_after, removal_control,name) %>%
+  filter(
+         foundation_spp != "Ocean")%>%
+  nest() %>%
+  mutate(model = map(data, 
+                     ~t.test(.x$rate_hr, mu = 0))) %>%
+  mutate(
+    tidy = map(model, tidy),
+    glance = map(model, glance)
+  )%>%
+  unnest(glance) %>%
+ # filter(p.value <=  0.05) %>%
+  ggplot(aes(x = before_after, color = removal_control, y = estimate))+
+  geom_point()+
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.1)+
+  geom_hline(yintercept = 0)+
+  facet_wrap(name~foundation_spp, scale = "free_y")
+
+
+###########
+
 test<-Rates %>%
   filter(day_night == "Day",
-         foundation_spp == "Mytilus",
+         foundation_spp == "Phyllospadix",
          removal_control != "Ocean",
-         name =="nn_umol_l") %>%
+         name =="m_c") %>%
   mutate(before_after = factor(before_after, labels = c("Before","After")))
 
-fit<-brm(formula = rate_m2_hr ~ before_after*removal_control+(1|pool_id),
+fit<-brm(formula = rate_hr ~ before_after*removal_control,
     data = test, warmup = 2000, iter = 10000 )
 
 summary(fit)
@@ -667,11 +886,12 @@ plot(fit)
 # plot conditional effects for each predictor
 plot(conditional_effects(fit), ask = FALSE)
 
-mc<-lmer(rate_m2_hr ~ removal_control*before_after+(1|pool_id), data =Rates %>%
+mc<-lmer(rate_hr ~ removal_control+before_after+(1|pool_id), data =Rates %>%
          filter(day_night == "Day",
-                foundation_spp == "Mytilus",
+                foundation_spp == "Phyllospadix",
                 removal_control != "Ocean",
-                name =="humic" ) )
+                name =="m_c" ) %>%
+         mutate(removal_control = ifelse(before_after == "Before","Control",removal_control)))
 
 
 anova(mc)
