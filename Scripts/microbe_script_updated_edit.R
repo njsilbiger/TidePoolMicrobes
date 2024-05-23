@@ -977,12 +977,16 @@ conc1<-mods3%>%
         axis.title.x = element_markdown(size = 14),
         legend.position = "none")
 
+<<<<<<< HEAD
 
 r1|conc1
 ggsave(here("Output","ControlOnlyEffects.pdf"), width = 8, height = 8)
 
 ### THEN JUST THE AFTER SET WITH AND W/O BACI
 
+=======
+### TRY JUST LOOKING AT CONTROL POOLS FOR SPECIES AND UPWELLING IMPACTS, THEN JUST THE AFTER SET WITH AND W/O BACI
+>>>>>>> 2c187b0fae75930b4a4d39cb1537032babc5347b
 
 ### normalize to the ocean ####
 data_norm<-data_all %>%
