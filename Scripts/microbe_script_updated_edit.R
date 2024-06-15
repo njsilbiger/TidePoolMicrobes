@@ -977,16 +977,14 @@ conc1<-mods3%>%
         axis.title.x = element_markdown(size = 14),
         legend.position = "none")
 
-<<<<<<< HEAD
 
 r1|conc1
 ggsave(here("Output","ControlOnlyEffects.pdf"), width = 8, height = 8)
 
 ### THEN JUST THE AFTER SET WITH AND W/O BACI
 
-=======
 ### TRY JUST LOOKING AT CONTROL POOLS FOR SPECIES AND UPWELLING IMPACTS, THEN JUST THE AFTER SET WITH AND W/O BACI
->>>>>>> 2c187b0fae75930b4a4d39cb1537032babc5347b
+
 
 ### normalize to the ocean ####
 data_norm<-data_all %>%
@@ -1153,13 +1151,13 @@ test<-Rates %>%
          name =="m_c") %>%
   mutate(before_after = factor(before_after, labels = c("Before","After")))
 
-fit<-brm(formula = rate_hr ~ before_after*removal_control,
-    data = test, warmup = 2000, iter = 10000 )
+# fit<-brm(formula = rate_hr ~ before_after*removal_control,
+#     data = test, warmup = 2000, iter = 10000 )
 
-summary(fit)
-plot(fit)
-# plot conditional effects for each predictor
-plot(conditional_effects(fit), ask = FALSE)
+# summary(fit)
+# plot(fit)
+# # plot conditional effects for each predictor
+# plot(conditional_effects(fit), ask = FALSE)
 
 mc<-lmer(rate_hr ~ removal_control+before_after+(1|pool_id), data =Rates %>%
          filter(day_night == "Day",
