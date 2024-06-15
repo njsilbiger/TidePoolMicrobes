@@ -400,7 +400,7 @@ P_Aug_impact<-data_long_day %>%
 
 
 P_july|P_Aug_control|P_Aug_impact+plot_layout(guides = "collect")&theme(legend.position = "bottom")
-ggsave(here("Output","mean_chem.pdf"), width = 10, height = 16)
+ggsave(here("Output","mean_chem.pdf"), width = 10, height = 16, device = cairo_pdf)
 
 ####### Look at it the BACI way #####
 
@@ -639,7 +639,7 @@ mods<-Rates %>%
   filter(day_night == "Day",
          foundation_spp != "Ocean",
          removal_control != "Ocean")%>%
-  group_by(foundation_spp, pool_id,removal_control,name) %>%
+#  group_by(foundation_spp, pool_id,removal_control,name) %>%
   
   # reframe(rate_diff = rate_hr[before_after == "After"] - rate_hr[before_after == "Before"]) %>%
   # ungroup() %>%
@@ -743,7 +743,7 @@ mods_BACI<-Rates %>%
   mutate(model = map(data, 
                      function(df) {
                        lm(rate_diff_scale  ~ removal_control,
-                          data = df)
+                           data = df)
                      })) %>%
     mutate(
     tidy = map(model, tidy),
@@ -846,6 +846,7 @@ data_end<-data_all %>%
 
 mods2<-data_end %>%
   filter(time_point == "start")%>%
+#  mutate(value_scale_log = sign(value_scale)*sqrt(abs(value_scale)))%>%
   group_by(foundation_spp,nicenames, time_point)%>%
   nest() %>%
   # mutate(model = map(data, 
@@ -889,7 +890,7 @@ conc2<-mods2%>%
 
 
 r2|conc2
-ggsave(here("Output","BACIEffects.pdf"), width = 8, height = 8)
+ggsave(here("Output","BACIEffects.pdf"), width = 8, height = 8, device = cairo_pdf)
 
 
 #### concentration only for control pools 
@@ -898,7 +899,7 @@ data_end2<-data_all %>%
   filter(day_night == "Day",
          foundation_spp != "Ocean"
   )  %>%
-  select(before_after,pool_id, day_night, time_point,removal_control, foundation_spp,do_mg_l,heterotrophic_bacterioplankton_m_l:autotrophic_pico_eukaryotes_m_l,m_c, bix, hix, nn_umol_l, nh4_umol_l) %>%
+  dplyr::select(before_after,pool_id, day_night, time_point,removal_control, foundation_spp,do_mg_l,heterotrophic_bacterioplankton_m_l:autotrophic_pico_eukaryotes_m_l,m_c, bix, hix, nn_umol_l, nh4_umol_l) %>%
   pivot_longer(cols = do_mg_l:nh4_umol_l) %>%
   group_by(foundation_spp, pool_id,removal_control,name, time_point) %>%
   filter(name %in% c("nn_umol_l","heterotrophic_bacterioplankton_m_l","nh4_umol_l", "m_c","bix","hix") )%>%
@@ -908,25 +909,25 @@ data_end2<-data_all %>%
   )%>%
   #filter(month == "August (Upwelling)")%>%
   #  filter(name %in% c("nn_umol_l","heterotrophic_bacterioplankton_m_l","nh4_umol_l") )%>%
-  group_by(name, foundation_spp)%>%
+  group_by(name)%>%
   #mutate(value_diff_scale = as.numeric(scale(value_diff, scale = TRUE,center = TRUE))) %>%
   mutate(value_scale = as.numeric(scale(value, scale = TRUE,center = TRUE))) %>%
   ungroup()%>%
   mutate(nicenames = case_when(
-    name == "heterotrophic_bacterioplankton_m_l" ~ "&Delta;Heterotrophic Bacteria",
-    name == "nh4_umol_l" ~ "&Delta;Ammonium",
-    name == "nn_umol_l" ~ "&Delta;Nitrate+Nitrite",
-    name == "bix"~"&Delta;BIX" ,
-    name == "hix"~"&Delta;HIX",
-    name == "m_c"~"&Delta;M:C",
+    name == "heterotrophic_bacterioplankton_m_l" ~ "Heterotrophic Bacteria",
+    name == "nh4_umol_l" ~ "Ammonium",
+    name == "nn_umol_l" ~ "Nitrate+Nitrite",
+    name == "bix"~"BIX" ,
+    name == "hix"~"HIX",
+    name == "m_c"~"M:C",
   )
   )%>%
-  mutate(nicenames = factor(nicenames, levels = c("&Delta;Ammonium",
-                                                  "&Delta;Nitrate+Nitrite",
-                                                  "&Delta;BIX" ,
-                                                  "&Delta;M:C",
-                                                  "&Delta;HIX",
-                                                  "&Delta;Heterotrophic Bacteria"
+  mutate(nicenames = factor(nicenames, levels = c("Ammonium",
+                                                  "Nitrate+Nitrite",
+                                                  "BIX" ,
+                                                  "M:C",
+                                                  "HIX",
+                                                  "Heterotrophic Bacteria"
                                                   
   )))
 
@@ -979,7 +980,7 @@ conc1<-mods3%>%
 
 
 r1|conc1
-ggsave(here("Output","ControlOnlyEffects.pdf"), width = 8, height = 8)
+ggsave(here("Output","ControlOnlyEffects.pdf"), width = 8, height = 8, device = cairo_pdf)
 
 ### THEN JUST THE AFTER SET WITH AND W/O BACI
 
@@ -1285,7 +1286,7 @@ day_plot_surfgrass<-meandata %>%
 
 day_plot_mussel|day_plot_surfgrass+plot_layout(guides = "collect")&theme(legend.position = "bottom")
 
-ggsave(filename = here("Output","AllRates.pdf"), width = 8, height = 18)
+ggsave(filename = here("Output","AllRates.pdf"), width = 8, height = 18, device = cairo_pdf)
 
 # make a set of reaction norm plots for the night
 night_plot<-mean_plot %>%
@@ -1400,7 +1401,7 @@ BenthicData %>%
         )+
   facet_grid(Before_After~Foundation_spp, scale = "free_x")
 
-ggsave(here("Output","BenthicCover.pdf"), width = 10, height = 8)
+ggsave(here("Output","BenthicCover.pdf"), width = 10, height = 8, device = cairo_pdf)
 
 #### Take a regression approach #############
 
