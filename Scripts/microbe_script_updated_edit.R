@@ -1354,7 +1354,8 @@ ggsave(plot = night_plot, filename = here("Output","AllRates_night.pdf"), width 
 PoolOrder<-as_tibble(list(PoolOrder = c(1:32), 
                      PoolID = factor(c(4,1,20, 18, 5, 27,8, 29,
                                    21,26,6,3,2,28,22,7,13,31,14,19,30,9,25,
-                                    12,32,15,11,10,17,16,23,24))))
+                                    12,32,15,11,10,17,16,23,24))))%>%
+  mutate(PoolOrder2 = c(1:16,1:16))
 
 
 
@@ -1384,9 +1385,10 @@ BenthicData %>%
          Foundation_spp = ifelse(Foundation_spp == "Mytilus","Mussel-dominated","Surfgrass-dominated"),
          Before_After = ifelse(Before_After == "Before","Before-Impact","After-Impact"),
          Before_After = factor(Before_After, levels = c("Before-Impact","After-Impact")))%>%
-  ggplot(aes(x = PoolOrder, y = value, fill = name))+
+  ggplot(aes(x = PoolOrder2, y = value, fill = name))+
   geom_bar(position = "stack", stat = "identity") +
   scale_fill_manual(values = cal_palette("tidepool", n = 7, type = "continuous"))+
+  geom_vline(aes(xintercept = 8.5), linewidth = 1.25)+
   labs(x = "",
        y = "% Cover",
        fill = "")+
@@ -1399,7 +1401,7 @@ BenthicData %>%
         strip.background = element_blank(),
         strip.text = element_text(size = 16)
         )+
-  facet_grid(Before_After~Foundation_spp, scale = "free_x")
+  facet_grid(Foundation_spp~Before_After, scale = "free_x")
 
 ggsave(here("Output","BenthicCover.pdf"), width = 10, height = 8, device = cairo_pdf)
 
