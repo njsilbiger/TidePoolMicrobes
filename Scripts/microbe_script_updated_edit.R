@@ -207,68 +207,77 @@ data_long_day<-data_all %>%
   filter(day_night == "Day")  %>%
   mutate(prot = tyrosine_like+tryptophan_like+ phenylalanine_like,
          humic = ultra_violet_humic_like+visible_humic_like+marine_humic_like) %>%
-  select(month, day_night, time_point,removal_control, foundation_spp,do_mg_l,heterotrophic_bacterioplankton_m_l:autotrophic_pico_eukaryotes_m_l,prot, humic, nn_umol_l, nh4_umol_l) %>%
-  pivot_longer(cols = do_mg_l:nh4_umol_l) %>%
+  select(month, day_night, time_point,removal_control, foundation_spp,do_mg_l,heterotrophic_bacterioplankton_m_l, nn_umol_l, nh4_umol_l, bix, hix, m_c) %>%
+  pivot_longer(cols = do_mg_l:m_c) %>%
   group_by(month, name, foundation_spp,time_point, day_night, removal_control)%>%
   summarise(mean_val = mean(value, na.rm = TRUE),
             se_val= sd(value, na.rm = TRUE)/sqrt(n())) %>%
   mutate(time_point_clean = ifelse(time_point == "start","Early", "Late"))%>%
   mutate(nicenames = case_when(
-    name == "autotrophic_pico_eukaryotes_m_l" ~"Autotrophic <br> (# mL<sup>-1</sup>)",
+   # name == "autotrophic_pico_eukaryotes_m_l" ~"Autotrophic <br> (# mL<sup>-1</sup>)",
     name == "do_mg_l" ~ "DO <br> (mg L<sup>-1</sup>)",
     name == "heterotrophic_bacterioplankton_m_l" ~ "Heterotrophic <br> (# mL<sup>-1</sup>)",
-    name == "synechoococcus_m_l" ~ "Synechoococcus <br> (# mL<sup>-1</sup>)",
+  #  name == "synechoococcus_m_l" ~ "Synechoococcus <br> (# mL<sup>-1</sup>)",
     name == "nh4_umol_l" ~ "Ammonium <br> (&mu;mol L<sup>-1</sup>)",
     name == "po_umol_l" ~ "Phosphate <br> (&mu;mol L<sup>-1</sup>)",
     name == "nn_umol_l" ~ "Nitrate+Nitrite <br> (&mu;mol L<sup>-1</sup>)",
-    name == "humic" ~ "Humic-like <br> (Raman units)",
-    name == "prot" ~ "Proteinaceous <br> (Raman units)")
+  #  name == "humic" ~ "Humic-like <br> (Raman units)",
+  #  name == "prot" ~ "Proteinaceous <br> (Raman units)",
+    name == "hix"~"HIX",
+    name == "bix"~"BIX",
+    name == "m_c"~"M:C")
   ) %>%
   mutate(nicenames = factor(nicenames, levels = c("DO <br> (mg L<sup>-1</sup>)",
                                                   "Ammonium <br> (&mu;mol L<sup>-1</sup>)",
                                                   "Nitrate+Nitrite <br> (&mu;mol L<sup>-1</sup>)",
                                                   "Phosphate <br> (&mu;mol L<sup>-1</sup>)",
-                                                  "Autotrophic <br> (# mL<sup>-1</sup>)",
-                                                  "Synechoococcus <br> (# mL<sup>-1</sup>)",
+                                                #  "Autotrophic <br> (# mL<sup>-1</sup>)",
+                                                #  "Synechoococcus <br> (# mL<sup>-1</sup>)",
                                                   "Heterotrophic <br> (# mL<sup>-1</sup>)",
-                                                  "Humic-like <br> (Raman units)",
-                                                  "Proteinaceous <br> (Raman units)"
+                                                  # "Humic-like <br> (Raman units)",
+                                                  # "Proteinaceous <br> (Raman units)",
+                                                  "HIX","BIX","M:C"
                                                   
                                                   
   )))
 
+#### FIX STARTING HERE
 
 P_july<-data_all %>%
   ungroup()%>%
   filter(day_night == "Day")  %>%
   mutate(prot = tyrosine_like+tryptophan_like+ phenylalanine_like,
          humic = ultra_violet_humic_like+visible_humic_like+marine_humic_like) %>%
-  select(month, day_night, time_point,removal_control, foundation_spp,do_mg_l,heterotrophic_bacterioplankton_m_l:autotrophic_pico_eukaryotes_m_l,prot, humic, nn_umol_l, nh4_umol_l) %>%
-  pivot_longer(cols = do_mg_l:nh4_umol_l) %>%
+  select(month, day_night, time_point,removal_control, foundation_spp,do_mg_l,heterotrophic_bacterioplankton_m_l, nn_umol_l, nh4_umol_l, bix, hix, m_c) %>%
+  pivot_longer(cols = do_mg_l:m_c) %>%
   group_by(month, name, foundation_spp,time_point, day_night)%>% ### all the pools together
   summarise(mean_val = mean(value, na.rm = TRUE),
             se_val= sd(value, na.rm = TRUE)/sqrt(n())) %>%
   mutate(time_point_clean = ifelse(time_point == "start","Early", "Late"))%>%
   mutate(nicenames = case_when(
-    name == "autotrophic_pico_eukaryotes_m_l" ~"Autotrophic <br> (# mL<sup>-1</sup>)",
+  #  name == "autotrophic_pico_eukaryotes_m_l" ~"Autotrophic <br> (# mL<sup>-1</sup>)",
     name == "do_mg_l" ~ "DO <br> (mg L<sup>-1</sup>)",
-    name == "heterotrophic_bacterioplankton_m_l" ~ "Heterotrophic <br> (# mL<sup>-1</sup>)",
+   # name == "heterotrophic_bacterioplankton_m_l" ~ "Heterotrophic <br> (# mL<sup>-1</sup>)",
     name == "synechoococcus_m_l" ~ "Synechoococcus <br> (# mL<sup>-1</sup>)",
     name == "nh4_umol_l" ~ "Ammonium <br> (&mu;mol L<sup>-1</sup>)",
     name == "po_umol_l" ~ "Phosphate <br> (&mu;mol L<sup>-1</sup>)",
     name == "nn_umol_l" ~ "Nitrate+Nitrite <br> (&mu;mol L<sup>-1</sup>)",
-    name == "humic" ~ "Humic-like <br> (Raman units)",
-    name == "prot" ~ "Proteinaceous <br> (Raman units)")
+  #  name == "humic" ~ "Humic-like <br> (Raman units)",
+  #  name == "prot" ~ "Proteinaceous <br> (Raman units)",
+    name == "hix"~"HIX",
+    name == "bix"~"BIX",
+    name == "m_c"~"M:C")
   ) %>%
   mutate(nicenames = factor(nicenames, levels = c("DO <br> (mg L<sup>-1</sup>)",
                                                   "Ammonium <br> (&mu;mol L<sup>-1</sup>)",
                                                   "Nitrate+Nitrite <br> (&mu;mol L<sup>-1</sup>)",
                                                   "Phosphate <br> (&mu;mol L<sup>-1</sup>)",
-                                                  "Autotrophic <br> (# mL<sup>-1</sup>)",
-                                                  "Synechoococcus <br> (# mL<sup>-1</sup>)",
+                                            #      "Autotrophic <br> (# mL<sup>-1</sup>)",
+                                            #      "Synechoococcus <br> (# mL<sup>-1</sup>)",
                                                   "Heterotrophic <br> (# mL<sup>-1</sup>)",
-                                                  "Humic-like <br> (Raman units)",
-                                                  "Proteinaceous <br> (Raman units)"
+                                                 # "Humic-like <br> (Raman units)",
+                                                #  "Proteinaceous <br> (Raman units)",
+                                                  "HIX","BIX","M:C"
                                                   
                                                   
   )))%>%
@@ -287,10 +296,11 @@ P_july<-data_all %>%
       scale_y_continuous(limits=c(6, 25)),
       scale_y_continuous(limits=c(0, 30)),
       scale_y_continuous(limits=c(0, 16)),
-      scale_y_continuous(limits = c(0, 3)),
-      scale_y_continuous(limits=c(0, 6)),
+         #   scale_y_continuous(limits = c(0, 3)),
+   #   scale_y_continuous(limits=c(0, 6)),
       scale_y_continuous(limits = c(0, 1000)),
-      scale_y_continuous(limits = c(0, 0.6)),
+      scale_y_continuous(limits = c(0, 2)),
+      scale_y_continuous(limits=c(0, 2)),
       scale_y_continuous(limits=c(0, 2))
 
     ), each = 1))+
@@ -332,7 +342,8 @@ P_Aug_control<-data_long_day %>%
       scale_y_continuous(limits = c(0, 3)),
       scale_y_continuous(limits=c(0, 6)),
       scale_y_continuous(limits = c(0, 1000)),
-      scale_y_continuous(limits = c(0, 0.6)),
+      scale_y_continuous(limits=c(0, 2)),
+      scale_y_continuous(limits=c(0, 2)),
       scale_y_continuous(limits=c(0, 2))
       
     ), each = 1))+
@@ -376,7 +387,8 @@ P_Aug_impact<-data_long_day %>%
       scale_y_continuous(limits = c(0, 3)),
       scale_y_continuous(limits=c(0, 6)),
       scale_y_continuous(limits = c(0, 1000)),
-      scale_y_continuous(limits = c(0, 0.6)),
+      scale_y_continuous(limits=c(0, 2)),
+      scale_y_continuous(limits=c(0, 2)),
       scale_y_continuous(limits=c(0, 2))
       
     ), each = 1))+
@@ -1354,7 +1366,8 @@ ggsave(plot = night_plot, filename = here("Output","AllRates_night.pdf"), width 
 PoolOrder<-as_tibble(list(PoolOrder = c(1:32), 
                      PoolID = factor(c(4,1,20, 18, 5, 27,8, 29,
                                    21,26,6,3,2,28,22,7,13,31,14,19,30,9,25,
-                                    12,32,15,11,10,17,16,23,24))))
+                                    12,32,15,11,10,17,16,23,24))))%>%
+  mutate(PoolOrder2 = c(1:16,1:16))
 
 
 
@@ -1384,9 +1397,10 @@ BenthicData %>%
          Foundation_spp = ifelse(Foundation_spp == "Mytilus","Mussel-dominated","Surfgrass-dominated"),
          Before_After = ifelse(Before_After == "Before","Before-Impact","After-Impact"),
          Before_After = factor(Before_After, levels = c("Before-Impact","After-Impact")))%>%
-  ggplot(aes(x = PoolOrder, y = value, fill = name))+
+  ggplot(aes(x = PoolOrder2, y = value, fill = name))+
   geom_bar(position = "stack", stat = "identity") +
   scale_fill_manual(values = cal_palette("tidepool", n = 7, type = "continuous"))+
+  geom_vline(aes(xintercept = 8.5), linewidth = 1.25)+
   labs(x = "",
        y = "% Cover",
        fill = "")+
@@ -1399,7 +1413,7 @@ BenthicData %>%
         strip.background = element_blank(),
         strip.text = element_text(size = 16)
         )+
-  facet_grid(Before_After~Foundation_spp, scale = "free_x")
+  facet_grid(Foundation_spp~Before_After, scale = "free_x")
 
 ggsave(here("Output","BenthicCover.pdf"), width = 10, height = 8, device = cairo_pdf)
 
