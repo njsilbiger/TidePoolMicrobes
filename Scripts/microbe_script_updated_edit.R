@@ -246,8 +246,8 @@ data_long_day<-data_all %>%
 P_july<-data_all %>%
   ungroup()%>%
   filter(day_night == "Day")  %>%
-  mutate(prot = tyrosine_like+tryptophan_like+ phenylalanine_like,
-         humic = ultra_violet_humic_like+visible_humic_like+marine_humic_like) %>%
+#  mutate(prot = tyrosine_like+tryptophan_like+ phenylalanine_like,
+#         humic = ultra_violet_humic_like+visible_humic_like+marine_humic_like) %>%
   select(month, day_night, time_point,removal_control, foundation_spp,do_mg_l,heterotrophic_bacterioplankton_m_l, nn_umol_l, nh4_umol_l, bix, hix, m_c) %>%
   pivot_longer(cols = do_mg_l:m_c) %>%
   group_by(month, name, foundation_spp,time_point, day_night)%>% ### all the pools together
@@ -257,8 +257,8 @@ P_july<-data_all %>%
   mutate(nicenames = case_when(
   #  name == "autotrophic_pico_eukaryotes_m_l" ~"Autotrophic <br> (# mL<sup>-1</sup>)",
     name == "do_mg_l" ~ "DO <br> (mg L<sup>-1</sup>)",
-   # name == "heterotrophic_bacterioplankton_m_l" ~ "Heterotrophic <br> (# mL<sup>-1</sup>)",
-    name == "synechoococcus_m_l" ~ "Synechoococcus <br> (# mL<sup>-1</sup>)",
+    name == "heterotrophic_bacterioplankton_m_l" ~ "Heterotrophic <br> (# mL<sup>-1</sup>)",
+ #   name == "synechoococcus_m_l" ~ "Synechoococcus <br> (# mL<sup>-1</sup>)",
     name == "nh4_umol_l" ~ "Ammonium <br> (&mu;mol L<sup>-1</sup>)",
     name == "po_umol_l" ~ "Phosphate <br> (&mu;mol L<sup>-1</sup>)",
     name == "nn_umol_l" ~ "Nitrate+Nitrite <br> (&mu;mol L<sup>-1</sup>)",
@@ -282,6 +282,7 @@ P_july<-data_all %>%
                                                   
   )))%>%
   filter(month == "July",
+         foundation_spp != "Ocean"
   ) %>%
   ggplot(aes(x = time_point_clean, y = mean_val, color = foundation_spp, group = foundation_spp)
              #group = interaction(foundation_spp, removal_control))
@@ -299,16 +300,18 @@ P_july<-data_all %>%
          #   scale_y_continuous(limits = c(0, 3)),
    #   scale_y_continuous(limits=c(0, 6)),
       scale_y_continuous(limits = c(0, 1000)),
-      scale_y_continuous(limits = c(0, 2)),
-      scale_y_continuous(limits=c(0, 2)),
-      scale_y_continuous(limits=c(0, 2))
+      scale_y_continuous(limits = c(0.5, 1.5)),
+      scale_y_continuous(limits=c(0.8, 1.2)),
+      scale_y_continuous(limits=c(0.9, 1.35))
 
     ), each = 1))+
   labs(x = "",
        y = "",
        color = "",
        title = "Before \n (July)")+
-  scale_color_manual(values = c("grey30","#79ACBD","#567d46"))+
+  scale_color_manual(values = c("grey30",
+                             #   "#79ACBD",
+                                "#567d46"))+
   theme_bw()+
   theme(strip.background = element_blank(),
         strip.placement = "outside",
@@ -324,7 +327,8 @@ P_july<-data_all %>%
 # August control
 P_Aug_control<-data_long_day %>%
   filter(month != "July",
-         removal_control != "Removal"
+         removal_control != "Removal",
+         foundation_spp != "Ocean"
   ) %>%
   ggplot(aes(x = time_point_clean, y = mean_val, color = foundation_spp, group = foundation_spp)
          #group = interaction(foundation_spp, removal_control))
@@ -339,23 +343,24 @@ P_Aug_control<-data_long_day %>%
       scale_y_continuous(limits=c(6, 25)),
       scale_y_continuous(limits=c(0, 30)),
       scale_y_continuous(limits=c(0, 16)),
-      scale_y_continuous(limits = c(0, 3)),
-      scale_y_continuous(limits=c(0, 6)),
+  #    scale_y_continuous(limits = c(0, 3)),
+  #    scale_y_continuous(limits=c(0, 6)),
       scale_y_continuous(limits = c(0, 1000)),
-      scale_y_continuous(limits=c(0, 2)),
-      scale_y_continuous(limits=c(0, 2)),
-      scale_y_continuous(limits=c(0, 2))
-      
+  scale_y_continuous(limits = c(0.5, 1.5)),
+  scale_y_continuous(limits=c(0.8, 1.2)),
+  scale_y_continuous(limits=c(0.9, 1.35))
     ), each = 1))+
   labs(x = "",
        y = "",
        color = "",
        title = "After Control \n (August upwelling)")+
-  scale_color_manual(values = c("grey30","#79ACBD","#567d46"))+
+  scale_color_manual(values = c("grey30",
+                              #  "#79ACBD",
+                                "#567d46"))+
   theme_bw()+
   theme(strip.background = element_blank(),
         strip.placement = "outside",
-        strip.text.y.left = element_markdown(size = 14),
+        strip.text.y.left = element_blank(),
         strip.text = element_blank(),
         axis.text = element_text(size = 12),
         axis.text.x = element_text(face = "bold"),
@@ -369,7 +374,8 @@ P_Aug_control<-data_long_day %>%
 
 P_Aug_impact<-data_long_day %>%
   filter(month != "July",
-         removal_control != "Control"
+         removal_control != "Control",
+         foundation_spp != "Ocean"
   ) %>%
   ggplot(aes(x = time_point_clean, y = mean_val, color = foundation_spp, group = foundation_spp)
          #group = interaction(foundation_spp, removal_control))
@@ -384,23 +390,24 @@ P_Aug_impact<-data_long_day %>%
       scale_y_continuous(limits=c(6, 25)),
       scale_y_continuous(limits=c(0, 30)),
       scale_y_continuous(limits=c(0, 16)),
-      scale_y_continuous(limits = c(0, 3)),
-      scale_y_continuous(limits=c(0, 6)),
+   #   scale_y_continuous(limits = c(0, 3)),
+  #    scale_y_continuous(limits=c(0, 6)),
       scale_y_continuous(limits = c(0, 1000)),
-      scale_y_continuous(limits=c(0, 2)),
-      scale_y_continuous(limits=c(0, 2)),
-      scale_y_continuous(limits=c(0, 2))
-      
+  scale_y_continuous(limits = c(0.5, 1.5)),
+  scale_y_continuous(limits=c(0.8, 1.2)),
+  scale_y_continuous(limits=c(0.9, 1.35))
     ), each = 1))+
   labs(x = "",
        y = "",
        color = "",
        title = "After Impact \n (August upwelling)")+
-  scale_color_manual(values = c("grey30","#79ACBD","#567d46"))+
+  scale_color_manual(values = c("grey30",
+                                #"#79ACBD",
+                                "#567d46"))+
   theme_bw()+
   theme(strip.background = element_blank(),
         strip.placement = "outside",
-        strip.text.y.left = element_markdown(size = 14),
+        strip.text.y.left = element_blank(),
         strip.text = element_blank(),
         axis.text = element_text(size = 12),
         axis.text.x = element_text(face = "bold"),
@@ -411,7 +418,7 @@ P_Aug_impact<-data_long_day %>%
   )
 
 
-P_july|P_Aug_control|P_Aug_impact+plot_layout(guides = "collect")&theme(legend.position = "bottom")
+P_july+ theme(legend.position = "none")|P_Aug_control+ theme(legend.position = "none")+plot_layout(guides = "collect")|P_Aug_impact&theme(legend.position = "bottom")
 ggsave(here("Output","mean_chem.pdf"), width = 10, height = 16, device = cairo_pdf)
 
 ####### Look at it the BACI way #####
@@ -590,47 +597,55 @@ mean_plot<-mean_rates %>%
 )
 
 ## reaction norm for m2 and w/o ocean ####
-mean_plot %>%
+mean_plotdata<-mean_plot %>%
   filter(day_night == "Day",
          foundation_spp != "Ocean",
          removal_control != "Ocean",
-         name %in% c("m_c","bix", "nn_umol_l","heterotrophic_bacterioplankton_m_l","nh4_umol_l") )%>%
+         name %in% c("m_c","bix","hix","do_mg_l", "nn_umol_l","heterotrophic_bacterioplankton_m_l","nh4_umol_l") )%>%
   mutate(month = ifelse(before_after == "Before", "July", "August (Upwelling)"),
          month = factor(month, levels = c("July","August (Upwelling)"))) %>%
-  mutate(nicenames = factor(nicenames, levels = c("&Delta; Ammonium <br> (&mu;mol m<sup>-2</sup> hr<sup>-1</sup>)",
+  mutate(nicenames = factor(nicenames, levels = c("&Delta;DO <br> (mg m<sup>-2</sup> hr<sup>-1</sup>)",
+                                                  "&Delta; Ammonium <br> (&mu;mol m<sup>-2</sup> hr<sup>-1</sup>)",
                                                   "&Delta;Nitrate+Nitrite <br> (&mu;mol m<sup>-2</sup>hr<sup>-1</sup>)",
+                                                  "&Delta;Heterotrophic <br> (# m<sup>-2</sup> hr<sup>-1</sup>)",
                                                   "&Delta;BIX <br> (# m<sup>-2</sup> hr<sup>-1</sup>)" ,
                                                   "&Delta;M:C <br> (# m<sup>-2</sup> hr<sup>-1</sup>)",
-                                              #    "&Delta;FI <br> (# m<sup>-2</sup> hr<sup>-1</sup>)",
-                                                  "&Delta;Heterotrophic <br> (# m<sup>-2</sup> hr<sup>-1</sup>)"
+                                                  "&Delta;HIX <br> (# m<sup>-2</sup> hr<sup>-1</sup>)"
+                                                  
     
-  )))%>%
- # filter(foundation_spp == "Mytilus") %>%
-  ggplot(aes(x = month, y = mean_value, color = foundation_spp, 
+  )))
+
+
+mussel_rates<-mean_plotdata %>% 
+ filter(foundation_spp == "Mytilus") %>%
+  ggplot(aes(x = month, y = mean_value_m2, color = foundation_spp, 
              group = interaction(removal_control, foundation_spp), 
              shape = removal_control))+
   geom_hline(yintercept = 0, lty = 2)+
   geom_point(size = 3)+
-  geom_errorbar(aes(x = month, y = mean_value, ymin = mean_value-se_value, ymax = mean_value+se_value), width = 0.01)+
+  geom_errorbar(aes(x = month, y = mean_value_m2, ymin = mean_value_m2-se_value_m2, ymax = mean_value_m2+se_value_m2), width = 0.01)+
   geom_line()+
   labs(x = "",
        y = "", 
        color = "",
        shape = "",
-  #     title = "Mussels"
+      title = "Mussels"
        )+
-  scale_color_manual(values = c("grey30","#567d46"))+
+  scale_color_manual(values = c("grey30"), guide = "none")+
+  #scale_color_manual(values = c("grey30","#567d46"))+
+  
   scale_shape_manual(values = c(16,1))+
-  facet_wrap(nicenames~foundation_spp, scales = "free_y", ncol = 2, strip.position = "left")+
- #  facetted_pos_scales(
- #    y = rep(list(
- #      scale_y_continuous(limits=c(0, 0.3)),
- #      scale_y_continuous(limits=c(-0.2, 0.2)),
- #      scale_y_continuous(limits=c(-0.01, 0.001)),
- #       scale_y_continuous(limits = c(-0.01, 0.005)),
- # #     scale_y_continuous(limits=c(-0.006, 0.006)),
- #      scale_y_continuous(limits = c(-5000, 10000))
- #     ), each = 2))+
+  facet_wrap(~nicenames, scales = "free_y", ncol = 1, strip.position = "left")+
+   facetted_pos_scales(
+     y = rep(list(
+       scale_y_continuous(limits=c(-0.1, 0.4)),
+       scale_y_continuous(limits=c(0, 0.3)),
+       scale_y_continuous(limits=c(-.15,0.2)),
+        scale_y_continuous(limits = c(-5100, 10000)),
+       scale_y_continuous(limits=c(-0.009, 0.002)),
+       scale_y_continuous(limits = c(-0.015,0.005)),
+       scale_y_continuous(limits = c(-0.0075,0.012))
+      ), each = 1))+
   theme_bw()+
   theme(strip.text.y.left  = ggtext::element_markdown(size = 16),
         strip.text.x = element_blank(),
@@ -645,6 +660,59 @@ mean_plot %>%
         plot.title = element_text(hjust = 0.5, size = 14))
   
   
+
+
+surfgrass_rates<-mean_plotdata %>% 
+  filter(foundation_spp == "Phyllospadix") %>%
+  ggplot(aes(x = month, y = mean_value_m2, color = foundation_spp, 
+             group = interaction(removal_control, foundation_spp), 
+             shape = removal_control))+
+  geom_hline(yintercept = 0, lty = 2)+
+  geom_point(size = 3)+
+  geom_errorbar(aes(x = month, y = mean_value_m2, ymin = mean_value_m2-se_value_m2, ymax = mean_value_m2+se_value_m2), width = 0.01)+
+  geom_line()+
+  labs(x = "",
+       y = "", 
+       color = "",
+       shape = "",
+       title = "Surfgrass"
+  )+
+  scale_color_manual(values = c("#567d46"), guide = "none")+
+  #scale_color_manual(values = c("grey30","#567d46"))+
+  
+  scale_shape_manual(values = c(16,1), guide = "none")+
+  facet_wrap(~nicenames, scales = "free_y", ncol = 1, strip.position = "left")+
+  facetted_pos_scales(
+    y = rep(list(
+      scale_y_continuous(limits=c(-0.1, 0.4)),
+      scale_y_continuous(limits=c(0, 0.3)),
+      scale_y_continuous(limits=c(-.15,0.2)),
+      scale_y_continuous(limits = c(-5100, 10000)),
+      scale_y_continuous(limits=c(-0.009, 0.002)),
+      scale_y_continuous(limits = c(-0.015,0.005)),
+      scale_y_continuous(limits = c(-0.0075,0.012))
+    ), each = 1))+
+  theme_bw()+
+  theme(
+        strip.text.y.left  = element_blank(),
+        strip.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.title.y = element_blank(),
+        strip.placement = "outside",
+        axis.title = element_text(size = 14),
+        axis.text = element_text(size = 14),
+        strip.background = element_blank(),
+        legend.text = element_text(size = 14),
+        legend.position = "bottom",
+        legend.direction = "horizontal",
+        legend.justification = "left", 
+        plot.title = element_text(hjust = 0.5, size = 14))
+
+
+mussel_rates|surfgrass_rates+plot_layout(guides = "collect")&theme(legend.position = "bottom")
+
+ggsave(filename = here("Output","AllRates.pdf"), width = 8, height = 18, device = cairo_pdf)
+
 
 #### run two-way anovas
 mods<-Rates %>%
@@ -1182,183 +1250,6 @@ mc<-lmer(rate_hr ~ removal_control+before_after+(1|pool_id), data =Rates %>%
 
 anova(mc)
 summary(mc)
-
-# make a set of reaction norm plots for the day
-meandata<-mean_plot %>%
-  filter(day_night == "Day",
-         !name %in% c("fi","hix","m_c","bix", "po_umol_l") )%>%
-  # filter(name %in% c(
-  #   "hetero_rate","do_mg_l_rate",
-  #   "nh4_rate","nn_rate"))%>%
-  mutate(nicenames = factor(nicenames, levels = c("DO <br> (mg L<sup>-1</sup> hr<sup>-1</sup>)",
-                                                  "Ammonium <br> (&mu;mol L<sup>-1</sup> hr<sup>-1</sup>)",
-                                                  "Nitrate+Nitrite <br> (&mu;mol L<sup>-1</sup>hr<sup>-1</sup>)",
-                                                 # "Phosphate <br> (&mu;mol L<sup>-1</sup> hr<sup>-1</sup>)",
-                                                  "Autotrophic <br> (# mL<sup>-1</sup> hr<sup>-1</sup>)",
-                                                  "Synechoococcus <br> (# mL<sup>-1</sup> hr<sup>-1</sup>)",
-                                                  "Heterotrophic <br> (# mL<sup>-1</sup> hr<sup>-1</sup>)",
-                                                  "Humic-like <br> (Raman units hr<sup>-1</sup>)",
-                                                  "Proteinaceous <br> (Raman units hr<sup>-1</sup>)"
-                                                  
-    
-  )))%>%
-  mutate(month = ifelse(before_after == "Before", "July", "August (Upwelling)"),
-         month = factor(month, levels = c("July","August (Upwelling)")))
-
-# mussels
-
-  day_plot_mussel<-meandata %>%
-    filter(foundation_spp == "Mytilus") %>%
-    ggplot(aes(x = month, y = mean_value, color = removal_control, group = removal_control, shape = removal_control))+
-  geom_hline(yintercept = 0, lty = 2)+
-  geom_point(size = 3)+
-  geom_errorbar(aes(x = month, y = mean_value, ymin = mean_value-se_value, ymax = mean_value+se_value), width = 0.01)+
-  geom_line()+
-  labs(x = "",
-       y = "", 
-       color = "",
-       shape = "",
-       title = "Mussels")+
-  scale_color_manual(values = c("grey30","#79ACBD","grey30"))+
-  scale_shape_manual(values = c(16,16,1))+
-  #facet_nested_wrap(vars(nicenames,foundation_sp), scales = "free", ncol = 2)
-  facet_wrap(~nicenames, scales = "free_y", ncol = 1, strip.position = "left")+
-  facetted_pos_scales(
-    y = rep(list(
-      scale_y_continuous(limits=c(-0.5, 4)),
-      scale_y_continuous(limits=c(-0.5, 3.5)),
-      scale_y_continuous(limits=c(-1.5, 2.5)),
-     # scale_y_continuous(limits = c(-0.2, 0.4)),
-      scale_y_continuous(limits=c(-0.25, 0.25)),
-      scale_y_continuous(limits = c(-0.3, 0.2)),
-      scale_y_continuous(limits = c(-75, 150)),
-      scale_y_continuous(limits=c(-0.01, 0.08)),
-      scale_y_continuous(limits=c(-0.1, 0.2))
-      
-    ), each = 1))+
-  theme_bw()+
-  theme(strip.text.y.left  = ggtext::element_markdown(size = 16),
-        strip.text.x = element_blank(),
-        strip.placement = "outside",
-        axis.title = element_text(size = 14),
-        axis.text = element_text(size = 14),
-        strip.background = element_blank(),
-        legend.text = element_text(size = 14),
-        legend.position = "bottom",
-        legend.direction = "horizontal",
-        legend.justification = "left", 
-        plot.title = element_text(hjust = 0.5, size = 14))
- 
-
-
-
-# now surfgrass
-
-day_plot_surfgrass<-meandata %>%
-  filter(foundation_spp == "Phyllospadix") %>%
-  ggplot(aes(x = month, y = mean_value, color = removal_control, group = removal_control, shape = removal_control))+
-  geom_hline(yintercept = 0, lty = 2)+
-  geom_point(size = 3)+
-  geom_errorbar(aes(x = month, y = mean_value, ymin = mean_value-se_value, ymax = mean_value+se_value), width = 0.01)+
-  geom_line()+
-  labs(x = "",
-       y = "", 
-       color = "",
-       shape = "",
-       title = "Surfgrass")+
-  scale_color_manual(values = c("#567d46","#79ACBD","#567d46"))+
-  scale_shape_manual(values = c(16,16,1))+
-  #facet_nested_wrap(vars(nicenames,foundation_sp), scales = "free", ncol = 2)
-  facet_wrap(~nicenames, scales = "free_y", ncol = 1, strip.position = "left")+
-  facetted_pos_scales(
-    y = rep(list(
-      scale_y_continuous(limits=c(-0.5, 4)),
-      scale_y_continuous(limits=c(-0.5, 3.5)),
-      scale_y_continuous(limits=c(-1.5, 2.5)),
-      # scale_y_continuous(limits = c(-0.2, 0.4)),
-      scale_y_continuous(limits=c(-0.25, 0.25)),
-      scale_y_continuous(limits = c(-0.3, 0.2)),
-      scale_y_continuous(limits = c(-75, 150)),
-      scale_y_continuous(limits=c(-0.01, 0.08)),
-      scale_y_continuous(limits=c(-0.1, 0.2))
-      
-    ), each = 1))+
-  theme_bw()+
-  theme(strip.text.y.left  = element_blank(),
-        strip.placement = "outside",
-     #   strip.text.y = element_blank(),
-        axis.title = element_text(size = 14),
-        axis.text = element_text(size = 14),
-        strip.background = element_blank(),
-        legend.text = element_text(size = 14),
-        legend.position = "bottom",
-        legend.direction = "horizontal",
-        legend.justification = "left", 
-        plot.title = element_text(hjust = 0.5, size = 14))
-
-day_plot_mussel|day_plot_surfgrass+plot_layout(guides = "collect")&theme(legend.position = "bottom")
-
-ggsave(filename = here("Output","AllRates.pdf"), width = 8, height = 18, device = cairo_pdf)
-
-# make a set of reaction norm plots for the night
-night_plot<-mean_plot %>%
-  filter(day_night == "Night",
-         !name %in% c("fi","hix","m_c","bix") )%>%
-  # filter(name %in% c(
-  #   "hetero_rate","do_mg_l_rate",
-  #   "nh4_rate","nn_rate"))%>%
-  mutate(nicenames = factor(nicenames, levels = c("DO <br> (mg L<sup>-1</sup> hr<sup>-1</sup>)",
-                                                  "Ammonium <br> (&mu;mol L<sup>-1</sup> hr<sup>-1</sup>)",
-                                                  "Nitrate+Nitrite <br> (&mu;mol L<sup>-1</sup>hr<sup>-1</sup>)",
-                                                  "Phosphate <br> (&mu;mol L<sup>-1</sup> hr<sup>-1</sup>)",
-                                                  "Autotrophic <br> (# mL<sup>-1</sup> hr<sup>-1</sup>)",
-                                                  "Synechoococcus <br> (# mL<sup>-1</sup> hr<sup>-1</sup>)",
-                                                  "Heterotrophic <br> (# mL<sup>-1</sup> hr<sup>-1</sup>)",
-                                                  "Humic_like <br> (Raman units hr<sup>-1</sup>)",
-                                                  "Proteinaceous <br> (Raman units hr<sup>-1</sup>)"
-                                                  
-                                                  
-  )))%>%
-  ggplot(aes(x = before_after, y = mean_value, color = removal_control, group = removal_control, shape = removal_control))+
-  geom_hline(yintercept = 0, lty = 2)+
-  geom_point(size = 3)+
-  geom_errorbar(aes(x = before_after, y = mean_value, ymin = mean_value-se_value, ymax = mean_value+se_value), width = 0.01)+
-  geom_line()+
-  labs(x = "",
-       y = "", 
-       color = "",
-       shape = "")+
-  scale_color_manual(values = c("grey30","#79ACBD","grey30"))+
-  scale_shape_manual(values = c(16,16,1))+
-  #facet_nested_wrap(vars(nicenames,foundation_sp), scales = "free", ncol = 2)
-  facet_wrap(nicenames~foundation_spp, scales = "free_y", ncol = 2, strip.position = "left")+
-  facetted_pos_scales(
-    y = rep(list(
-      scale_y_continuous(limits=c(-2, 0.5)),
-      scale_y_continuous(limits=c(-2, 3)),
-      scale_y_continuous(limits=c(-1, 0.5)),
-      scale_y_continuous(limits = c(-0.4, 0.8)),
-      scale_y_continuous(limits=c(-0.5, 0.25)),
-      scale_y_continuous(limits = c(-2, 1)),
-      scale_y_continuous(limits = c(-100, 150)),
-      scale_y_continuous(limits=c(-0.1, 0.1)),
-      scale_y_continuous(limits=c(-0.2, 0.15))
-      
-    ), each = 2))+
-  theme_bw()+
-  theme(strip.text.y.left  = ggtext::element_markdown(size = 16),
-        strip.text.x = element_blank(),
-        strip.placement = "outside",
-        axis.title = element_text(size = 14),
-        axis.text = element_text(size = 14),
-        strip.background = element_blank(),
-        legend.text = element_text(size = 14),
-        legend.position = "bottom",
-        legend.direction = "horizontal",
-        legend.justification = "left")
-
-night_plot
-ggsave(plot = night_plot, filename = here("Output","AllRates_night.pdf"), width = 8, height = 18)
 
 ## Make a plot of the benthic data
 
