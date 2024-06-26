@@ -518,6 +518,17 @@ Rates %>%
   geom_boxplot()+
   facet_wrap(name~foundation_spp, scales = "free")
   
+# To make the arrows in the tidepool plot
+
+Rates %>%
+  filter(name == "do_mg_l",
+         day_night == "Day") %>%
+  group_by(foundation_spp, before_after, removal_control) %>%
+  summarise(mean_DO = mean(rate_m2_hr, na.rm = TRUE)) %>%
+  pivot_wider(names_from = before_after, values_from = mean_DO) %>%
+  mutate(change = (After - Before)*10)
+
+
 ## Make some reaction norms
 mean_rates<-Rates %>%
   mutate(before_after = factor(before_after, levels = c("Before","After")))%>%
