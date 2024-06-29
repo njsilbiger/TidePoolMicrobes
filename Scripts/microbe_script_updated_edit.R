@@ -551,7 +551,14 @@ mean_rates %>%
   geom_errorbar(aes(ymin = mean_value_m2 - se_value_m2, ymax = mean_value_m2+se_value_m2), width = 0.1)+
   facet_wrap(foundation_spp~name, scale = "free_y")
 
+### Table with just ocean data
 
+mean_rates %>%
+  mutate(month = ifelse(before_after == "Before", "July", "August (Upwelling)"),
+         month = factor(month, levels = c("July","August (Upwelling)"))) %>%
+  filter(day_night == "Day",
+         foundation_spp == "Ocean") 
+  
 ### have all the before data be averaged out
 mean_rates_before<-Rates %>%
   filter(before_after == "Before")%>%
