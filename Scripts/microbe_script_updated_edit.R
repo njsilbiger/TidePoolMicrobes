@@ -1589,6 +1589,7 @@ P_HDO<-Day_rates_wide2 %>%
                              removal_control == "Removal"& month != "July" ~ "Foundation spp. removed"))%>%
   mutate(removal = factor(removal, levels = c("Unmanipulated","Foundation spp. removed")))%>%
   filter(foundation_spp != "Ocean")%>%
+  mutate(foundation_spp = ifelse(foundation_spp == "Mytilus", "Mussel-dominated","Surfgrass-dominated"))%>%
   ggplot(aes(y = heterotrophic_bacterioplankton_m_l, x = do_mg_l))+
   geom_hline(aes(yintercept  = 0), lty = 2)+
   geom_vline(aes(xintercept  = 0), lty = 2)+
@@ -1616,17 +1617,18 @@ P_HDO<-Day_rates_wide2 %>%
         axis.text = element_text(size = 12),
         strip.background = element_blank(),
         strip.text = element_text(size = 14),
-        legend.text = element_text(size = 14)
+        legend.title = element_text(size = 14),
+        legend.text = element_text(size = 12)
   )
 ggsave(here("Output","het_DO_regression.pdf"), width = 8, height = 4)
 
 
-DO_het_mod<-lm(data = Day_rates_wide2 %>%  
+DO_het_mod<-lmer(data = Day_rates_wide2 %>%  
                  mutate(removal = case_when(removal_control == "Control"~"Unmanipulated",
                                             removal_control == "Removal"& month == "July" ~ "Unmanipulated",
                                             removal_control == "Removal"& month != "July" ~ "Foundation spp. removed"))%>%
                  mutate(removal = factor(removal, levels = c("Unmanipulated","Foundation spp. removed")))%>%
-                 filter(foundation_spp != "Ocean"), heterotrophic_bacterioplankton_m_l~do_mg_l*removal)
+                 filter(foundation_spp != "Ocean"), heterotrophic_bacterioplankton_m_l~do_mg_l*removal+(1|pool_id))
 
 anova(DO_het_mod)
 summary(DO_het_mod)
