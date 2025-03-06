@@ -1601,7 +1601,8 @@ P_HDO<-Day_rates_wide %>%
   scale_color_manual(values = c("grey","grey8"))+
   labs(y = "Heterotrophic bacterial production <br> (# mL<sup>-1</sup> hr<sup>-1</sup>)",
        x = "DO production <br> (mg L<sup>-1</sup> hr<sup>-1</sup>)",
-       color = "")+
+       color = "Sampling Month",
+       shape = " Foundation Species")+
   facet_wrap(~removal, scales = "free_x")+
   theme_bw()+
   theme(panel.grid = element_blank(),
@@ -1612,7 +1613,7 @@ P_HDO<-Day_rates_wide %>%
         strip.text = element_text(size = 14),
         legend.text = element_text(size = 14)
   )
-ggsave(here("Output","het_DO_regression.png"), width = 8, height = 4)
+ggsave(here("Output","het_DO_regression.pdf"), width = 8, height = 4)
 
 
 DO_het_mod<-lm(data = Day_rates_wide %>%  
