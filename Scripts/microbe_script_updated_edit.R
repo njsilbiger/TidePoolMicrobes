@@ -1576,9 +1576,14 @@ DO_humic_mod<-lm(data = Day_rates_wide %>%
 
 anova(DO_humic_mod)
 
+Day_rates_wide2<-Day_rates %>%  
+  filter(foundation_spp != "Ocean") %>%
+  select(-c(change:vol, rate_hr))%>%
+  pivot_wider(values_from = rate_m2_hr, names_from = name)
+
 
 ##DO and Hetero
-P_HDO<-Day_rates_wide %>%  
+P_HDO<-Day_rates_wide2 %>%  
   mutate(removal = case_when(removal_control == "Control"~"Unmanipulated",
                              removal_control == "Removal"& month == "July" ~ "Unmanipulated",
                              removal_control == "Removal"& month != "July" ~ "Foundation spp. removed"))%>%
@@ -1591,7 +1596,7 @@ P_HDO<-Day_rates_wide %>%
   # geom_text(aes(x = 175, y = 0.1, label = "p = 0.036"))+
 #  ylim(-.3,.3)+
   geom_smooth(method = "lm", color = "black",
-              data = Day_rates_wide %>%  
+              data = Day_rates_wide2 %>%  
                 mutate(removal = case_when(removal_control == "Control"~"Unmanipulated",
                                            removal_control == "Removal"& month == "July" ~ "Unmanipulated",
                                            removal_control == "Removal"& month != "July" ~ "Foundation spp. removed"))%>%
@@ -1599,8 +1604,8 @@ P_HDO<-Day_rates_wide %>%
                 filter(foundation_spp != "Ocean",
                        removal == "Unmanipulated"))+
   scale_color_manual(values = c("grey","grey8"))+
-  labs(y = "Heterotrophic bacterial production <br> (# mL<sup>-1</sup> hr<sup>-1</sup>)",
-       x = "DO production <br> (mg L<sup>-1</sup> hr<sup>-1</sup>)",
+  labs(y = "Heterotrophic bacterial production <br> (# m<sup>-2</sup> hr<sup>-1</sup>)",
+       x = "DO production <br> (mg m<sup>-2</sup> hr<sup>-1</sup>)",
        color = "Sampling Month",
        shape = " Foundation Species")+
   facet_wrap(~removal, scales = "free_x")+
@@ -1616,7 +1621,7 @@ P_HDO<-Day_rates_wide %>%
 ggsave(here("Output","het_DO_regression.pdf"), width = 8, height = 4)
 
 
-DO_het_mod<-lm(data = Day_rates_wide %>%  
+DO_het_mod<-lm(data = Day_rates_wide2 %>%  
                  mutate(removal = case_when(removal_control == "Control"~"Unmanipulated",
                                             removal_control == "Removal"& month == "July" ~ "Unmanipulated",
                                             removal_control == "Removal"& month != "July" ~ "Foundation spp. removed"))%>%
