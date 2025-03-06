@@ -1529,7 +1529,8 @@ Prot_Hetero<-Day_rates_wide %>%
   ylim(-.3,.3)+
   geom_smooth(method = "lm")+
   labs(y = "Proteinaceaous fDOM (raman units hr-1)",
-       x = "heterotrophic bacteria (counts mL-1 hr-1)")+
+       x = "heterotrophic bacteria (counts mL-1 hr-1)",
+       shape = "Foundation Species")+
   theme_bw()+
   theme(panel.grid = element_blank())
 
@@ -1586,7 +1587,7 @@ P_HDO<-Day_rates_wide %>%
   ggplot(aes(y = heterotrophic_bacterioplankton_m_l, x = do_mg_l))+
   geom_hline(aes(yintercept  = 0), lty = 2)+
   geom_vline(aes(xintercept  = 0), lty = 2)+
-  geom_point(alpha = 0.5, aes(color = month))+
+  geom_point(alpha = 0.5, aes(color = month, shape = foundation_spp))+
   # geom_text(aes(x = 175, y = 0.1, label = "p = 0.036"))+
 #  ylim(-.3,.3)+
   geom_smooth(method = "lm", color = "black",
@@ -1635,7 +1636,7 @@ P_HPico<-Day_rates_wide %>%
   ggplot(aes(x = heterotrophic_bacterioplankton_m_l, y = autotrophic_pico_eukaryotes_m_l))+
   geom_hline(aes(yintercept  = 0), lty = 2)+
   geom_vline(aes(xintercept  = 0), lty = 2)+
-  geom_point(alpha = 0.5,aes(color = month))+
+  geom_point(alpha = 0.5,aes(color = month, shape = foundation_spp))+
   # geom_text(aes(x = 175, y = 0.1, label = "p = 0.036"))+
   #  ylim(-.3,.3)+
   geom_smooth(method = "lm", 
@@ -1673,3 +1674,5 @@ summary(DO_het_pico)
 
 P_HDO/P_HPico+plot_layout(guides = "collect")
 ggsave(here("output","top_bottom_regress.pdf"), width = 8, height = 8, useDingbats = FALSE)
+
+
