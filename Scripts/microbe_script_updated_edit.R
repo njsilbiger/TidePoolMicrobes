@@ -75,6 +75,18 @@ data_all  %>%
   labs(y = "difference from ocean sample")+
   facet_wrap(removal_control~parameter, scales = "free")
 
+# total fDOM in the ocean
+data_all %>%
+  filter(removal_control == "Ocean",
+         day_night == "Day") %>%
+  select(sampling_group, before_after, time_point,ultra_violet_humic_like:phenylalanine_like) %>%
+  mutate(totalfDOM = rowSums(across(ultra_violet_humic_like:phenylalanine_like))) %>%
+  group_by(before_after)%>%
+  summarise(mean_fdom = mean(totalfDOM),
+            se_fDOM = sd(totalfDOM, na.rm = TRUE))
+
+### ADD TOTAL FDOM TO ANALYSIS AND SEE IF THERE IS AN EFFECT
+
 ## make a pca of all the data
 pcadata<-data_all  %>%
   filter(foundation_spp !="Ocean", 
