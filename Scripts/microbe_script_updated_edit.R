@@ -182,10 +182,13 @@ p1/plot_spacer()/p2+plot_layout(heights = c(2,-0.1, 1))
 ## plot the raw ocean data of before and after
 data_all %>%
   ungroup()%>%
-  filter(foundation_spp == "Ocean") %>%
+  filter(foundation_spp == "Ocean",
+         day_night == "Day") %>%
  # filter(day_night == "Day")  %>%
-  mutate(prot = tyrosine_like+tryptophan_like+ phenylalanine_like) %>%
-  select(month, day_night, do_mg_l,heterotrophic_bac_m_l=heterotrophic_bacterioplankton_m_l,prot,temperature = temp_pool, nn_umol_l, nh4_umol_l) %>%
+  mutate(prot = tyrosine_like+tryptophan_like+ phenylalanine_like,
+         humic = ultra_violet_humic_like+visible_humic_like+marine_humic_like,
+         total_fDOM = prot+humic) %>%
+  select(month, day_night, do_mg_l,heterotrophic_bac_m_l=heterotrophic_bacterioplankton_m_l,total_fDOM,temperature = temp_pool, nn_umol_l, nh4_umol_l) %>%
   pivot_longer(cols = do_mg_l:nh4_umol_l) %>%
   group_by(month, name, day_night)%>%
   summarise(mean_val = mean(value, na.rm = TRUE),
@@ -207,8 +210,9 @@ data_long<-data_all %>%
   filter(removal_control != "Removal") %>%
   filter(day_night == "Day")  %>%
   mutate(prot = tyrosine_like+tryptophan_like+ phenylalanine_like,
-         humic = ultra_violet_humic_like+visible_humic_like+marine_humic_like) %>%
-  select(month, day_night, time_point,removal_control, foundation_spp,do_mg_l,heterotrophic_bacterioplankton_m_l:autotrophic_pico_eukaryotes_m_l,prot, humic, nn_umol_l, nh4_umol_l) %>%
+         humic = ultra_violet_humic_like+visible_humic_like+marine_humic_like,
+         total_fDOM = prot+humic) %>%
+  select(month, day_night, time_point,removal_control, foundation_spp,do_mg_l,heterotrophic_bacterioplankton_m_l:autotrophic_pico_eukaryotes_m_l,prot, humic,total_fDOM, nn_umol_l, nh4_umol_l) %>%
   pivot_longer(cols = do_mg_l:nh4_umol_l)
 
 ### MAKE THIS PLOT PRETTY #######
@@ -218,9 +222,10 @@ data_long_day<-data_all %>%
   ungroup()%>%
   filter(day_night == "Day")  %>%
   mutate(prot = tyrosine_like+tryptophan_like+ phenylalanine_like,
-         humic = ultra_violet_humic_like+visible_humic_like+marine_humic_like) %>%
-  select(month, day_night, time_point,removal_control, foundation_spp,do_mg_l,heterotrophic_bacterioplankton_m_l, nn_umol_l, nh4_umol_l, bix, hix, m_c) %>%
-  pivot_longer(cols = do_mg_l:m_c) %>%
+         humic = ultra_violet_humic_like+visible_humic_like+marine_humic_like,
+         total_fDOM = prot+humic) %>%
+  select(month, day_night, time_point,removal_control, foundation_spp,do_mg_l,heterotrophic_bacterioplankton_m_l, nn_umol_l, nh4_umol_l, bix, hix, m_c, total_fDOM) %>%
+  pivot_longer(cols = do_mg_l:total_fDOM) %>%
   group_by(month, name, foundation_spp,time_point, day_night, removal_control)%>%
   summarise(mean_val = mean(value, na.rm = TRUE),
             se_val= sd(value, na.rm = TRUE)/sqrt(n())) %>%
@@ -234,6 +239,7 @@ data_long_day<-data_all %>%
     name == "po_umol_l" ~ "Phosphate <br> (&mu;mol L<sup>-1</sup>)",
     name == "nn_umol_l" ~ "Nitrate+Nitrite <br> (&mu;mol L<sup>-1</sup>)",
   #  name == "humic" ~ "Humic-like <br> (Raman units)",
+  name == "total_fDOM" ~"Total fDOM <br> (Raman units)",
   #  name == "prot" ~ "Proteinaceous <br> (Raman units)",
     name == "hix"~"HIX",
     name == "bix"~"BIX",
@@ -258,10 +264,11 @@ data_long_day<-data_all %>%
 P_july<-data_all %>%
   ungroup()%>%
   filter(day_night == "Day")  %>%
-#  mutate(prot = tyrosine_like+tryptophan_like+ phenylalanine_like,
-#         humic = ultra_violet_humic_like+visible_humic_like+marine_humic_like) %>%
-  select(month, day_night, time_point,removal_control, foundation_spp,do_mg_l,heterotrophic_bacterioplankton_m_l, nn_umol_l, nh4_umol_l, bix, hix, m_c) %>%
-  pivot_longer(cols = do_mg_l:m_c) %>%
+  mutate(prot = tyrosine_like+tryptophan_like+ phenylalanine_like,
+         humic = ultra_violet_humic_like+visible_humic_like+marine_humic_like,
+         total_fDOM = prot+humic) %>%
+  select(month, day_night, time_point,removal_control, foundation_spp,do_mg_l,heterotrophic_bacterioplankton_m_l, nn_umol_l, nh4_umol_l, bix, hix, m_c, total_fDOM) %>%
+  pivot_longer(cols = do_mg_l:total_fDOM) %>%
   group_by(month, name, foundation_spp,time_point, day_night)%>% ### all the pools together
   summarise(mean_val = mean(value, na.rm = TRUE),
             se_val= sd(value, na.rm = TRUE)/sqrt(n())) %>%
@@ -276,6 +283,7 @@ P_july<-data_all %>%
     name == "nn_umol_l" ~ "Nitrate+Nitrite <br> (&mu;mol L<sup>-1</sup>)",
   #  name == "humic" ~ "Humic-like <br> (Raman units)",
   #  name == "prot" ~ "Proteinaceous <br> (Raman units)",
+    name == "total_fDOM" ~"Total fDOM <br> (Raman units)",
     name == "hix"~"HIX",
     name == "bix"~"BIX",
     name == "m_c"~"M:C")
@@ -289,12 +297,12 @@ P_july<-data_all %>%
                                                   "Heterotrophic <br> (# mL<sup>-1</sup>)",
                                                  # "Humic-like <br> (Raman units)",
                                                 #  "Proteinaceous <br> (Raman units)",
-                                                  "HIX","BIX","M:C"
+                                                  "HIX","BIX","M:C", "Total fDOM <br> (Raman units)"
                                                   
                                                   
   )))%>%
   filter(month == "July",
-         foundation_spp != "Ocean"
+#         foundation_spp != "Ocean"
   ) %>%
   ggplot(aes(x = time_point_clean, y = mean_val, color = foundation_spp, group = foundation_spp)
              #group = interaction(foundation_spp, removal_control))
@@ -314,7 +322,8 @@ P_july<-data_all %>%
       scale_y_continuous(limits = c(0, 1000)),
       scale_y_continuous(limits = c(0.5, 1.5)),
       scale_y_continuous(limits=c(0.8, 1.2)),
-      scale_y_continuous(limits=c(0.9, 1.35))
+      scale_y_continuous(limits=c(0.9, 1.35)),
+      scale_y_continuous(limits=c(0, 2))
 
     ), each = 1))+
   labs(x = "",
@@ -322,7 +331,7 @@ P_july<-data_all %>%
        color = "",
        title = "Before \n (July)")+
   scale_color_manual(values = c("grey30",
-                             #   "#79ACBD",
+                                "#79ACBD",
                                 "#567d46"))+
   theme_bw()+
   theme(strip.background = element_blank(),
@@ -340,7 +349,7 @@ P_july<-data_all %>%
 P_Aug_control<-data_long_day %>%
   filter(month != "July",
          removal_control != "Removal",
-         foundation_spp != "Ocean"
+#         foundation_spp != "Ocean"
   ) %>%
   ggplot(aes(x = time_point_clean, y = mean_val, color = foundation_spp, group = foundation_spp)
          #group = interaction(foundation_spp, removal_control))
@@ -360,14 +369,15 @@ P_Aug_control<-data_long_day %>%
       scale_y_continuous(limits = c(0, 1000)),
   scale_y_continuous(limits = c(0.5, 1.5)),
   scale_y_continuous(limits=c(0.8, 1.2)),
-  scale_y_continuous(limits=c(0.9, 1.35))
+  scale_y_continuous(limits=c(0.9, 1.35)),
+  scale_y_continuous(limits=c(0, 2))
     ), each = 1))+
   labs(x = "",
        y = "",
        color = "",
        title = "After Control \n (August upwelling)")+
   scale_color_manual(values = c("grey30",
-                              #  "#79ACBD",
+                                "#79ACBD",
                                 "#567d46"))+
   theme_bw()+
   theme(strip.background = element_blank(),
@@ -387,7 +397,7 @@ P_Aug_control<-data_long_day %>%
 P_Aug_impact<-data_long_day %>%
   filter(month != "July",
          removal_control != "Control",
-         foundation_spp != "Ocean"
+ #        foundation_spp != "Ocean"
   ) %>%
   ggplot(aes(x = time_point_clean, y = mean_val, color = foundation_spp, group = foundation_spp)
          #group = interaction(foundation_spp, removal_control))
@@ -407,14 +417,15 @@ P_Aug_impact<-data_long_day %>%
       scale_y_continuous(limits = c(0, 1000)),
   scale_y_continuous(limits = c(0.5, 1.5)),
   scale_y_continuous(limits=c(0.8, 1.2)),
-  scale_y_continuous(limits=c(0.9, 1.35))
+  scale_y_continuous(limits=c(0.9, 1.35)),
+  scale_y_continuous(limits=c(0, 2))
     ), each = 1))+
   labs(x = "",
        y = "",
        color = "",
        title = "After Impact \n (August upwelling)")+
   scale_color_manual(values = c("grey30",
-                                #"#79ACBD",
+                                "#79ACBD",
                                 "#567d46"))+
   theme_bw()+
   theme(strip.background = element_blank(),
@@ -440,8 +451,9 @@ data_all %>%
   filter(day_night == "Day",
          foundation_spp != "Ocean")  %>%
   mutate(prot = tyrosine_like+tryptophan_like+ phenylalanine_like,
-         humic = ultra_violet_humic_like+visible_humic_like+marine_humic_like) %>%
-  select(month,pool_id, day_night, time_point,removal_control, foundation_spp,do_mg_l,heterotrophic_bacterioplankton_m_l:autotrophic_pico_eukaryotes_m_l,prot, humic, nn_umol_l, nh4_umol_l) %>%
+         humic = ultra_violet_humic_like+visible_humic_like+marine_humic_like,
+         total_fDOM = prot+humic) %>%
+  select(month,pool_id, day_night, time_point,removal_control, foundation_spp,do_mg_l,heterotrophic_bacterioplankton_m_l:autotrophic_pico_eukaryotes_m_l,total_fDOM, humic, nn_umol_l, nh4_umol_l) %>%
   pivot_longer(cols = do_mg_l:nh4_umol_l) %>%
   group_by(foundation_spp, pool_id,removal_control,name, time_point) %>%
   reframe(value_diff = value[month == "August (Upwelling)"] - value[month == "July"]) %>%
@@ -480,14 +492,14 @@ Rates<-data_all%>%
   ungroup()%>%
   mutate(prot = tyrosine_like+tryptophan_like+ phenylalanine_like,
          humic = ultra_violet_humic_like+visible_humic_like+marine_humic_like,
-         allfDOM = prot+humic) %>%
+         total_fDOM = prot+humic) %>%
   #mutate(sampling_datetime = as.numeric(mdy_hms(paste(sampling_day, sampling_time)))) %>% 
-  select(pool_id:removal_control, time_point, do_mg_l, po_umol_l:nh4_umol_l, heterotrophic_bacterioplankton_m_l:fi, prot, humic,allfDOM) %>%
+  select(pool_id:removal_control, time_point, do_mg_l, po_umol_l:nh4_umol_l, heterotrophic_bacterioplankton_m_l:fi, prot, humic,total_fDOM) %>%
    mutate(heterotrophic_bacterioplankton_m_l = heterotrophic_bacterioplankton_m_l *1000, # convert to per L
           autotrophic_pico_eukaryotes_m_l =  autotrophic_pico_eukaryotes_m_l*1000,
           synechoococcus_m_l = synechoococcus_m_l*1000
           )%>%
-  pivot_longer(cols = do_mg_l:allfDOM)%>%
+  pivot_longer(cols = do_mg_l:total_fDOM)%>%
   group_by(pool_id, before_after, removal_control,day_night, foundation_spp, sampling_group, name) %>%
   reframe(change = change_val(value, time_point)) %>% # calculate the difference between start and end
   left_join(times)%>%# join with the times
@@ -623,7 +635,7 @@ mean_plot<-mean_rates %>%
     name == "hix"~"&Delta;HIX <br> (# m<sup>-2</sup> hr<sup>-1</sup>)",
     name == "m_c"~"&Delta;M:C <br> (# m<sup>-2</sup> hr<sup>-1</sup>)",
     name == "fi"~"&Delta;FI <br> (# m<sup>-2</sup> hr<sup>-1</sup>)",
-    name == "allfDOM"~"&Delta;fDOM <br> (Raman units hr<sup>-1</sup>)")
+    name == "total_fDOM"~"&Delta;fDOM <br> (Raman units hr<sup>-1</sup>)")
 )
 
 ## reaction norm for m2 and w/o ocean ####
@@ -631,7 +643,7 @@ mean_plotdata<-mean_plot %>%
   filter(day_night == "Day",
          foundation_spp != "Ocean",
          removal_control != "Ocean",
-         name %in% c("m_c","bix","hix","do_mg_l", "nn_umol_l","heterotrophic_bacterioplankton_m_l","nh4_umol_l") )%>%
+         name %in% c("m_c","bix","hix","total_fDOM","do_mg_l", "nn_umol_l","heterotrophic_bacterioplankton_m_l","nh4_umol_l") )%>%
   mutate(month = ifelse(before_after == "Before", "July", "August (Upwelling)"),
          month = factor(month, levels = c("July","August (Upwelling)"))) %>%
   mutate(nicenames = factor(nicenames, levels = c("&Delta;DO <br> (mg m<sup>-2</sup> hr<sup>-1</sup>)",
@@ -640,7 +652,8 @@ mean_plotdata<-mean_plot %>%
                                                   "&Delta;Heterotrophic <br> (# m<sup>-2</sup> hr<sup>-1</sup>)",
                                                   "&Delta;BIX <br> (# m<sup>-2</sup> hr<sup>-1</sup>)" ,
                                                   "&Delta;M:C <br> (# m<sup>-2</sup> hr<sup>-1</sup>)",
-                                                  "&Delta;HIX <br> (# m<sup>-2</sup> hr<sup>-1</sup>)"
+                                                  "&Delta;HIX <br> (# m<sup>-2</sup> hr<sup>-1</sup>)",
+                                                  "&Delta;fDOM <br> (Raman units hr<sup>-1</sup>)"
                                                   
     
   )))
@@ -690,8 +703,6 @@ mussel_rates<-mean_plotdata %>%
         plot.title = element_text(hjust = 0.5, size = 14))
   
   
-
-
 surfgrass_rates<-mean_plotdata %>% 
   filter(foundation_spp == "Phyllospadix") %>%
   ggplot(aes(x = month, y = mean_value_m2, color = foundation_spp, 
@@ -793,7 +804,7 @@ mods<-Rates %>%
     name == "hix"~"&Delta;HIX",
     name == "m_c"~"&Delta;M:C",
     name == "fi"~"&Delta;FI <br> (# m<sup>-2</sup> hr<sup>-1</sup>)",
-    name == "allfDOM"~"&Delta;fDOM <br> (Raman units hr<sup>-1</sup>)")
+    name == "total_fDOM"~"&Delta;fDOM <br> (Raman units hr<sup>-1</sup>)")
   )%>%
   mutate(nicenames = factor(nicenames, levels = c("&Delta;Ammonium",
                                                   "&Delta;Nitrate+Nitrite",
@@ -1000,7 +1011,7 @@ conc2<-mods2%>%
 
 
 r2|conc2
-ggsave(here("Output","BACIEffects.pdf"), width = 8, height = 8, device = cairo_pdf)
+ggsave(here("Output","BACIEffects"), width = 8, height = 8, device = cairo_pdf)
 
 
 #### concentration only for control pools 
@@ -1009,7 +1020,7 @@ data_end2<-data_all %>%
   filter(day_night == "Day",
          foundation_spp != "Ocean"
   )  %>%
-  dplyr::select(before_after,pool_id, day_night, time_point,removal_control, foundation_spp,do_mg_l,heterotrophic_bacterioplankton_m_l:autotrophic_pico_eukaryotes_m_l,m_c, bix, hix, nn_umol_l, nh4_umol_l) %>%
+  dplyr::select(before_after,pool_id, day_night, time_point,removal_control, foundation_spp,do_mg_l,heterotrophic_bacterioplankton_m_l:autotrophic_pico_eukaryotes_m_l,m_c, bix, hix,total_fDOM, nn_umol_l, nh4_umol_l) %>%
   pivot_longer(cols = do_mg_l:nh4_umol_l) %>%
   group_by(foundation_spp, pool_id,removal_control,name, time_point) %>%
   filter(name %in% c("nn_umol_l","heterotrophic_bacterioplankton_m_l","nh4_umol_l", "m_c","bix","hix") )%>%
