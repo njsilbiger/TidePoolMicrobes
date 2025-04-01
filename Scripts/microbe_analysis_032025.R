@@ -248,12 +248,13 @@ values<-data_all %>%
 
 # run the models
 mods2<-values %>%
+  mutate(before_after = ifelse(month == "July", "Before","After"))%>%
    # mutate(value_scale_sqrt = sign(value_scale)*sqrt(abs(value_scale)))%>%
   group_by(foundation_spp,nicenames)%>%
   nest() %>%
   mutate(model = map(data,
                      function(df) {
-                       lmer(value_scale~ removal_control*month+(1|pool_id), data = df) #log transformed log(abs(value_diff_scale))*sign(value_diff_scale)
+                       lmer(value_scale~ removal_control*before_after+(1|pool_id), data = df) #log transformed log(abs(value_diff_scale))*sign(value_diff_scale)
                      })) %>%
   mutate(
     tidy = map(model, tidy),
@@ -265,7 +266,7 @@ conc2<-mods2%>%
   unnest(tidy)%>%
   filter(#p.value <=  0.05,
     #  effect == "fixed",
-    term =="removal_controlRemoval:monthAugust (Upwelling)",
+    term =="removal_controlRemoval:before_afterBefore",
     #  name !="heterotrophic_bacterioplankton_m_l"
   ) %>%
   mutate(alpha = ifelse(p.value<= 0.055,1, 0.5))
@@ -304,7 +305,7 @@ r_int<-r2 %>%
         legend.position = "none")
 
 r_int|con_int
-ggsave(here("Output","BACIEffects_interaction"), width = 8, height = 8, device = cairo_pdf)
+ggsave(here("Output","BACIEffects_interaction.pdf"), width = 8, height = 8, device = cairo_pdf)
 
 # To get the upwelling effect we cal only look at the unmanipulated pools 
 ## do a two-way ANOVA between month and foundation species to see effect of upwelling and species identity
@@ -377,7 +378,7 @@ conc1<-mods3%>%
   mutate(term = factor(term,levels = c("Foundation spp. Effect",
                                        "Upwelling Effect",
                                        "Interaction")))%>%
-  mutate(alpha = ifelse(p.value <= 0.05, 1, 0.5))%>%
+  mutate(alpha = ifelse(p.value <= 0.055, 1, 0.5))%>%
   ggplot(aes(y = fct_rev(nicenames), x = estimate, alpha = alpha))+
   geom_point(size = 3)+
   geom_errorbar(aes(xmin = estimate-std.error, xmax = estimate+std.error), width = 0.1)+
@@ -459,7 +460,7 @@ r1<-mods%>%
   mutate(term = factor(term,levels = c("Foundation spp. Effect",
                                        "Upwelling Effect",
                                        "Interaction")))%>%
-  mutate(alpha = ifelse(p.value <= 0.05, 1, 0.5))%>%
+  mutate(alpha = ifelse(p.value <= 0.055, 1, 0.5))%>%
   ggplot(aes(y = fct_rev(nicenames), x = estimate, alpha = alpha))+
   geom_point(size = 3)+
   geom_errorbar(aes(xmin = estimate-std.error, xmax = estimate+std.error), width = 0.1)+
@@ -613,4 +614,25 @@ data_all %>%
   summarise(means = mean(mean_val, na.rm = TRUE))
   
 
+### test cover as a covariate
+Long_all<-Rates %>% 
+  filter(day_night == "Day",
+         foundation_spp != "Ocean",
+         foundation_spp == "Mytilus",
+         name %in% c("bix","do_mg_l","heterotrophic_bacterioplankton_m_l","hix", "m_c", "nh4_umol_l", "nn_umol_l","total_fDOM"))%>%
+  filter(name != "total_fDOM" | rate_m2_hr <0.1)%>%
+  mutate(together = paste(before_after, removal_control),
+         manipulated = ifelse(together == "After Removal","Manipulated", "Not Manipulated"))%>%
+  left_join(Benthic_long) %>%
+  mutate(rate_sqrt = sign(rate_m2_hr)*sqrt(abs(rate_m2_hr)))
 
+
+Long_all %>%
+  filter(name == "nn_umol_l",
+         foundation_spp == "Mytilus")  %>%
+  mutate(rate_sqrt = sign(rate_m2_hr)*sqrt(abs(rate_m2_hr)))
+
+
+summary(lmer(rate_sqrt ~ removal_control*before_after + cover_change_adj +(1|pool_id), Long_all %>%
+               filter(name == "nn_umol_l",
+                      foundation_spp == "Mytilus")))
