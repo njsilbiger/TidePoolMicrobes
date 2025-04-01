@@ -554,19 +554,27 @@ BenthicData%>%
 
 Rates %>% 
   filter(day_night == "Day",
-         foundation_spp != "Ocean")%>%
+         foundation_spp != "Ocean",
+         foundation_spp == "Mytilus",
+         name %in% c("bix","do_mg_l","heterotrophic_bacterioplankton_m_l","hix", "m_c", "nh4_umol_l", "nn_umol_l","total_fDOM"))%>%
+  filter(name != "total_fDOM" | rate_m2_hr <0.1)%>%
+  mutate(together = paste(before_after, removal_control),
+         manipulated = ifelse(together == "After Removal","Manipulated", "Not Manipulated"))%>%
   left_join(Benthic_long) %>%
-  ggplot(aes(x = cover_change_adj, y = rate_m2_hr, color = before_after))+
+  ggplot(aes(x = cover_change_adj, y = rate_hr, color = before_after))+
   geom_point()+
-  facet_wrap(name~foundation_spp, scale = "free")
+  facet_wrap(name~manipulated, scale = "free")
 
 values %>% 
   mutate(before_after = ifelse(month == "July","Before","After"))%>%
   left_join(Benthic_long) %>%
-  filter(foundation_spp == "Phyllospadix")%>%
-  mutate(together = paste(before_after, removal_control),
+  filter(#day_night == "Day",
+         foundation_spp != "Ocean",
+         foundation_spp == "Phyllospadix",
+         name %in% c("bix","do_mg_l","heterotrophic_bacterioplankton_m_l","hix", "m_c", "nh4_umol_l", "nn_umol_l","total_fDOM"))%>%
+    mutate(together = paste(before_after, removal_control),
          manipulated = ifelse(together == "After Removal","Manipulated", "Not Manipulated"))%>%
-  ggplot(aes(x =  cover_change_adj , y = mean_val))+
+  ggplot(aes(x =  cover_change_adj , y = log(mean_val)))+
   geom_point(aes( color = month))+
   geom_smooth(method = "lm")+
  # coord_trans(x = "log")+
@@ -583,3 +591,26 @@ Rates %>%
   geom_smooth(method = "lm")+
   # coord_trans(x = "log")+
   facet_wrap(name~manipulated, scale = "free")
+
+
+data_all %>%
+  ungroup()%>%
+  filter(day_night == "Day",
+         #foundation_spp != "Ocean"
+  )  %>%
+  mutate(prot = tyrosine_like+tryptophan_like+ phenylalanine_like,
+         humic = ultra_violet_humic_like+visible_humic_like+marine_humic_like,
+         total_fDOM = humic+prot) %>%
+  select(before_after, month,pool_id, day_night, time_point,removal_control, foundation_spp,do_mg_l,heterotrophic_bacterioplankton_m_l:autotrophic_pico_eukaryotes_m_l,prot,humic,m_c, bix, hix,fi, nn_umol_l, nh4_umol_l) %>%
+  pivot_longer(cols = do_mg_l:nh4_umol_l) %>%
+  group_by(foundation_spp, pool_id,removal_control,name, before_after) %>%
+  summarise(mean_val = mean(value, na.rm = TRUE))%>%
+  mutate(mean_val_sqrt = sqrt(mean_val))%>%
+  filter(name %in% c("nn_umol_l","nh4_umol_l") )%>%
+  mutate(together = paste(before_after, removal_control),
+         manipulated = ifelse(together == "After Removal","Manipulated", "Not Manipulated")) %>%
+  group_by(name, foundation_spp, manipulated, before_after) %>%
+  summarise(means = mean(mean_val, na.rm = TRUE))
+  
+
+
