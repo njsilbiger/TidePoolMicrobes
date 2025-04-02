@@ -618,7 +618,7 @@ data_all %>%
 Long_all<-Rates %>% 
   filter(day_night == "Day",
          foundation_spp != "Ocean",
-         foundation_spp == "Mytilus",
+      #   foundation_spp == "Mytilus",
          name %in% c("bix","do_mg_l","heterotrophic_bacterioplankton_m_l","hix", "m_c", "nh4_umol_l", "nn_umol_l","total_fDOM"))%>%
   filter(name != "total_fDOM" | rate_m2_hr <0.1)%>%
   mutate(together = paste(before_after, removal_control),
@@ -626,12 +626,54 @@ Long_all<-Rates %>%
   left_join(Benthic_long) %>%
   mutate(rate_sqrt = sign(rate_m2_hr)*sqrt(abs(rate_m2_hr)))
 
+sum_rates<-Long_all %>%
+  filter(name == "nn_umol_l",
+         foundation_spp == "Mytilus") %>%
+  mutate(month = factor(ifelse(before_after == "Before", "July", "August (Upwelling)"), levels = c("July", "August (Upwelling)"))) %>%
+  group_by(month, removal_control) %>%
+  summarise(mean_rate = mean(rate_sqrt, na.rm = TRUE),
+            se_rate = sd(rate_sqrt, na.rm = TRUE)/sqrt(n()))
 
-Long_all %>%
+NN_mussel<-Long_all %>%
   filter(name == "nn_umol_l",
          foundation_spp == "Mytilus")  %>%
-  mutate(rate_sqrt = sign(rate_m2_hr)*sqrt(abs(rate_m2_hr)))
+  mutate(month = factor(ifelse(before_after == "Before", "July", "August (Upwelling)"), levels = c("July", "August (Upwelling)"))) %>%
+  ggplot()+
+  geom_point(aes(x = month, y = rate_sqrt, color = removal_control, group = pool_id), alpha = 0.2)+
+  geom_path(aes(x = month, y = rate_sqrt, color = removal_control, group = pool_id), alpha = 0.2)+
+  geom_point(data = sum_rates,aes(x = month, y = mean_rate, color = removal_control, group = removal_control), size = 3 )+
+  geom_errorbar(data = sum_rates,aes(x = month, ymin = mean_rate - se_rate, ymax = mean_rate+se_rate, color = removal_control), width = 0.01, size = 1)+
+  geom_path(data = sum_rates,aes(x = month, y = mean_rate, color = removal_control, group = removal_control), size = 1 )+
+  labs(x = "",
+       y = "sqrt(Rate)",
+       color = "")+
+  theme_bw()
 
+sum_rates<-Long_all %>%
+  filter(name == "heterotrophic_bacterioplankton_m_l",
+         foundation_spp == "Phyllospadix") %>%
+  mutate(month = factor(ifelse(before_after == "Before", "July", "August (Upwelling)"), levels = c("July", "August (Upwelling)"))) %>%
+  group_by(month, removal_control) %>%
+  summarise(mean_rate = mean(rate_sqrt, na.rm = TRUE),
+            se_rate = sd(rate_sqrt, na.rm = TRUE)/sqrt(n()))
+
+Het_Phylo<-Long_all %>%
+  filter(name == "heterotrophic_bacterioplankton_m_l",
+         foundation_spp == "Phyllospadix")  %>%
+  mutate(month = factor(ifelse(before_after == "Before", "July", "August (Upwelling)"), levels = c("July", "August (Upwelling)"))) %>%
+  ggplot()+
+  geom_point(aes(x = month, y = rate_sqrt, color = removal_control, group = pool_id), alpha = 0.2)+
+  geom_path(aes(x = month, y = rate_sqrt, color = removal_control, group = pool_id), alpha = 0.2)+
+  geom_point(data = sum_rates,aes(x = month, y = mean_rate, color = removal_control, group = removal_control), size = 3 )+
+  geom_errorbar(data = sum_rates,aes(x = month, ymin = mean_rate - se_rate, ymax = mean_rate+se_rate, color = removal_control), width = 0.01, size = 1)+
+  geom_path(data = sum_rates,aes(x = month, y = mean_rate, color = removal_control, group = removal_control), size = 1 )+
+  labs(x = "",
+       y = "sqrt(Rate)",
+       color = "")+
+  theme_bw()
+
+
+NN_mussel/Het_Phylo +plot_layout(guides = "collect")
 
 summary(lmer(rate_sqrt ~ removal_control*before_after + cover_change_adj +(1|pool_id), Long_all %>%
                filter(name == "nn_umol_l",
