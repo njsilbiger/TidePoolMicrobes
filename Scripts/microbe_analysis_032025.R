@@ -17,6 +17,7 @@ library(broom)
 library(broom.mixed)
 library(ggh4x)
 library(brms)
+librbary(scales)
 
 
 ### read in data #########
@@ -207,7 +208,7 @@ r2<-mods_BACI%>%
     term =="removal_controlRemoval:before_afterBefore",
     #  name !="heterotrophic_bacterioplankton_m_l"
   ) %>%
-  mutate(alpha = ifelse(p.value<= 0.055,1, 0.5))
+  mutate(alpha = ifelse(p.value<= 0.055,1, 0.6))
 
 ## Do the models with the avaerage concentration 
 values<-data_all %>%
@@ -269,11 +270,12 @@ conc2<-mods2%>%
     term =="removal_controlRemoval:before_afterBefore",
     #  name !="heterotrophic_bacterioplankton_m_l"
   ) %>%
-  mutate(alpha = ifelse(p.value<= 0.055,1, 0.5))
+  mutate(alpha = ifelse(p.value<= 0.055,1, 0.6))
 
 ### make a plot of the interaction terms
 con_int<-conc2 %>%
-ggplot(aes(y = fct_rev(nicenames), x = estimate, alpha = alpha))+
+ggplot(aes(y = fct_rev(nicenames), x = estimate, alpha = alpha, color = foundation_spp))+
+  scale_color_manual(values = c("black","#34c230"))+
   geom_point(size = 3)+
   geom_errorbar(aes(xmin = estimate-std.error, xmax = estimate+std.error), width = 0.1)+
   geom_vline(xintercept = 0)+
@@ -289,7 +291,8 @@ ggplot(aes(y = fct_rev(nicenames), x = estimate, alpha = alpha))+
         legend.position = "none")
 
 r_int<-r2 %>%
-  ggplot(aes(y = fct_rev(nicenames), x = estimate, alpha = alpha))+
+  ggplot(aes(y = fct_rev(nicenames), x = estimate, alpha = alpha, color = foundation_spp))+
+  scale_color_manual(values = c("black","#34c230"))+
   geom_point(size = 3)+
   geom_errorbar(aes(xmin = estimate-std.error, xmax = estimate+std.error), width = 0.1)+
   geom_vline(xintercept=0)+
@@ -304,7 +307,7 @@ r_int<-r2 %>%
         axis.title.x = element_markdown(size = 14),
         legend.position = "none")
 
-r_int|con_int
+BC_int<-r_int|con_int
 ggsave(here("Output","BACIEffects_interaction.pdf"), width = 8, height = 8, device = cairo_pdf)
 
 # To get the upwelling effect we cal only look at the unmanipulated pools 
@@ -626,55 +629,263 @@ Long_all<-Rates %>%
   left_join(Benthic_long) %>%
   mutate(rate_sqrt = sign(rate_m2_hr)*sqrt(abs(rate_m2_hr)))
 
+# make a square root function with negatives
+sqrt_fcn<-function(x){sign(x)*sqrt(abs(x))}
+# transform the axes with this function
+tn <- trans_new("sqrt_fcn",
+                function(x){sign(x)*sqrt(abs(x))},
+                function(y){sign(y)*abs(y)^2}
+               )
+# get the average values for the plot
 sum_rates<-Long_all %>%
   filter(name == "nn_umol_l",
          foundation_spp == "Mytilus") %>%
   mutate(month = factor(ifelse(before_after == "Before", "July", "August (Upwelling)"), levels = c("July", "August (Upwelling)"))) %>%
   group_by(month, removal_control) %>%
-  summarise(mean_rate = mean(rate_sqrt, na.rm = TRUE),
-            se_rate = sd(rate_sqrt, na.rm = TRUE)/sqrt(n()))
+  summarise(mean_rate = mean(rate_m2_hr, na.rm = TRUE),
+            se_rate = sd(rate_m2_hr, na.rm = TRUE)/sqrt(n()))
 
 NN_mussel<-Long_all %>%
   filter(name == "nn_umol_l",
          foundation_spp == "Mytilus")  %>%
   mutate(month = factor(ifelse(before_after == "Before", "July", "August (Upwelling)"), levels = c("July", "August (Upwelling)"))) %>%
   ggplot()+
-  geom_point(aes(x = month, y = rate_sqrt, color = removal_control, group = pool_id), alpha = 0.2)+
-  geom_path(aes(x = month, y = rate_sqrt, color = removal_control, group = pool_id), alpha = 0.2)+
+  geom_point(aes(x = month, y = rate_m2_hr, color = removal_control, group = pool_id), alpha = 0.2)+
+  geom_path(aes(x = month, y = rate_m2_hr, color = removal_control, group = pool_id), alpha = 0.2)+
   geom_point(data = sum_rates,aes(x = month, y = mean_rate, color = removal_control, group = removal_control), size = 3 )+
   geom_errorbar(data = sum_rates,aes(x = month, ymin = mean_rate - se_rate, ymax = mean_rate+se_rate, color = removal_control), width = 0.01, size = 1)+
   geom_path(data = sum_rates,aes(x = month, y = mean_rate, color = removal_control, group = removal_control), size = 1 )+
+  scale_y_continuous(transform = tn, 
+                     breaks = c(-0.1, 0, 0.1, 0.25, 0.5))+
   labs(x = "",
-       y = "sqrt(Rate)",
+       y = "&Delta;Nitrate+Nitrite <br>(&mu;mol m<sup>-2</sup> hr<sup>-1</sup>)",
        color = "")+
-  theme_bw()
+  scale_color_manual(values = c("#e02b35","#082a54"))+
+  theme_bw()+
+  theme(axis.title = element_markdown(size = 14))
 
 sum_rates<-Long_all %>%
   filter(name == "heterotrophic_bacterioplankton_m_l",
          foundation_spp == "Phyllospadix") %>%
   mutate(month = factor(ifelse(before_after == "Before", "July", "August (Upwelling)"), levels = c("July", "August (Upwelling)"))) %>%
   group_by(month, removal_control) %>%
-  summarise(mean_rate = mean(rate_sqrt, na.rm = TRUE),
-            se_rate = sd(rate_sqrt, na.rm = TRUE)/sqrt(n()))
+  summarise(mean_rate = mean(rate_m2_hr, na.rm = TRUE),
+            se_rate = sd(rate_m2_hr, na.rm = TRUE)/sqrt(n()))
 
 Het_Phylo<-Long_all %>%
   filter(name == "heterotrophic_bacterioplankton_m_l",
          foundation_spp == "Phyllospadix")  %>%
   mutate(month = factor(ifelse(before_after == "Before", "July", "August (Upwelling)"), levels = c("July", "August (Upwelling)"))) %>%
   ggplot()+
-  geom_point(aes(x = month, y = rate_sqrt, color = removal_control, group = pool_id), alpha = 0.2)+
-  geom_path(aes(x = month, y = rate_sqrt, color = removal_control, group = pool_id), alpha = 0.2)+
+  geom_point(aes(x = month, y = rate_m2_hr, color = removal_control, group = pool_id), alpha = 0.2)+
+  geom_path(aes(x = month, y = rate_m2_hr, color = removal_control, group = pool_id), alpha = 0.2)+
   geom_point(data = sum_rates,aes(x = month, y = mean_rate, color = removal_control, group = removal_control), size = 3 )+
   geom_errorbar(data = sum_rates,aes(x = month, ymin = mean_rate - se_rate, ymax = mean_rate+se_rate, color = removal_control), width = 0.01, size = 1)+
   geom_path(data = sum_rates,aes(x = month, y = mean_rate, color = removal_control, group = removal_control), size = 1 )+
+  scale_y_continuous(transform = tn, breaks = c(-5000, -1000, 0,1000,5000, 10000, 20000))+
   labs(x = "",
-       y = "sqrt(Rate)",
+       y = "&Delta;Heterotrophic Bacteria <br> (# m<sup>-2</sup> hr<sup>-1</sup>)",
        color = "")+
-  theme_bw()
+  scale_color_manual(values = c("#e02b35","#082a54"))+
+  theme_bw()+
+  theme(axis.title = element_markdown(size = 14))
+
+# Same with significant values
+#NH4
+sum_rates<-values %>%
+  filter(name%in% c("nh4_umol_l", "nn_umol_l","bix"),
+         foundation_spp == "Mytilus") %>%
+  group_by(name, month, removal_control) %>%
+  summarise(mean_rate = mean(mean_val, na.rm = TRUE),
+            se_rate = sd(mean_val, na.rm = TRUE)/sqrt(n()))
+
+NH4_mussel<-values %>%
+  filter(name == "nh4_umol_l",
+         foundation_spp == "Mytilus")  %>%
+  ggplot()+
+  geom_point(aes(x = month, y = mean_val, color = removal_control, group = pool_id), alpha = 0.2)+
+  geom_path(aes(x = month, y = mean_val, color = removal_control, group = pool_id), alpha = 0.2)+
+  geom_point(data = sum_rates %>% filter(name == "nh4_umol_l"),aes(x = month, y = mean_rate, color = removal_control, group = removal_control), size = 3 )+
+  geom_errorbar(data = sum_rates %>% filter(name == "nh4_umol_l"),
+                aes(x = month, ymin = mean_rate - se_rate, ymax = mean_rate+se_rate, color = removal_control), 
+                width = 0.01, size = 1)+
+  geom_path(data = sum_rates %>% filter(name == "nh4_umol_l"),
+            aes(x = month, y = mean_rate, color = removal_control, group = removal_control), size = 1 )+
+  scale_y_continuous(transform = tn, breaks = c(2, 10, 20, 30))+
+  scale_color_manual(values = c("#e02b35","#082a54"))+
+  labs(x = "",
+       y = "Ammonium <br>(&mu;mol L<sup>-1</sup>)",
+       color = "")+
+  theme_bw()+
+  theme(axis.title = element_markdown(size = 14))
+
+NN_mussel_v<-values %>%
+  filter(name == "nn_umol_l",
+         foundation_spp == "Mytilus")  %>%
+  ggplot()+
+  geom_point(aes(x = month, y = mean_val, color = removal_control, group = pool_id), alpha = 0.2)+
+  geom_path(aes(x = month, y = mean_val, color = removal_control, group = pool_id), alpha = 0.2)+
+  geom_point(data = sum_rates %>% filter(name == "nn_umol_l"),aes(x = month, y = mean_rate, color = removal_control, group = removal_control), size = 3 )+
+  geom_errorbar(data = sum_rates %>% filter(name == "nn_umol_l"),
+                aes(x = month, ymin = mean_rate - se_rate, ymax = mean_rate+se_rate, color = removal_control), 
+                width = 0.01, size = 1)+
+  geom_path(data = sum_rates %>% filter(name == "nn_umol_l"),
+            aes(x = month, y = mean_rate, color = removal_control, group = removal_control), size = 1 )+
+  scale_y_continuous(transform = tn, breaks = c(2, 10, 20, 30))+
+  scale_color_manual(values = c("#e02b35","#082a54"))+
+  labs(x = "",
+       y = "Nitrate + Nitrite <br>(&mu;mol L<sup>-1</sup>)",
+       color = "")+
+  theme_bw()+
+  theme(axis.title = element_markdown(size = 14))
 
 
-NN_mussel/Het_Phylo +plot_layout(guides = "collect")
+BIX_mussel_v<-values %>%
+  filter(name == "bix",
+         foundation_spp == "Mytilus")  %>%
+  ggplot()+
+  geom_point(aes(x = month, y = mean_val, color = removal_control, group = pool_id), alpha = 0.2)+
+  geom_path(aes(x = month, y = mean_val, color = removal_control, group = pool_id), alpha = 0.2)+
+  geom_point(data = sum_rates %>% filter(name == "bix"),aes(x = month, y = mean_rate, color = removal_control, group = removal_control), size = 3 )+
+  geom_errorbar(data = sum_rates %>% filter(name == "bix"),
+                aes(x = month, ymin = mean_rate - se_rate, ymax = mean_rate+se_rate, color = removal_control), 
+                width = 0.01, size = 1)+
+  geom_path(data = sum_rates %>% filter(name == "bix"),
+            aes(x = month, y = mean_rate, color = removal_control, group = removal_control), size = 1 )+
+  scale_y_continuous(transform = tn)+
+  scale_color_manual(values = c("#e02b35","#082a54"))+
+  labs(x = "",
+       y = "BIX",
+       color = "")+
+  theme_bw()+
+  theme(axis.title = element_markdown(size = 14))
+
+sum_rates<-values %>%
+  filter(name%in% c("heterotrophic_bacterioplankton_m_l"),
+         foundation_spp == "Phyllospadix") %>%
+  group_by(name, month, removal_control) %>%
+  summarise(mean_rate = mean(mean_val, na.rm = TRUE),
+            se_rate = sd(mean_val, na.rm = TRUE)/sqrt(n()))
+
+Het_Phylo_v<-values %>%
+  filter(name == "heterotrophic_bacterioplankton_m_l",
+         foundation_spp == "Phyllospadix")  %>% 
+  ggplot()+
+  geom_point(aes(x = month, y = mean_val, color = removal_control, group = pool_id), alpha = 0.2)+
+  geom_path(aes(x = month, y = mean_val, color = removal_control, group = pool_id), alpha = 0.2)+
+  geom_point(data = sum_rates,aes(x = month, y = mean_rate, color = removal_control, group = removal_control), size = 3 )+
+  geom_errorbar(data = sum_rates,aes(x = month, ymin = mean_rate - se_rate, ymax = mean_rate+se_rate, color = removal_control), width = 0.01, size = 1)+
+  geom_path(data = sum_rates,aes(x = month, y = mean_rate, color = removal_control, group = removal_control), size = 1 )+
+  scale_y_continuous(transform = tn)+
+  scale_color_manual(values = c("#e02b35","#082a54"))+
+  labs(x = "",
+       y = "Heterotrophic Bacteria <br>(# mL<sup>-1</sup>)",
+       color = "")+
+  theme_bw()+
+  theme(axis.title = element_markdown(size = 14))
+
+BC_int /((NN_mussel/ plot_spacer()/ plot_spacer()/Het_Phylo) | (NN_mussel_v/NH4_mussel/BIX_mussel_v/Het_Phylo_v))+plot_layout(guides = "collect",widths = c(1,1,1), heights = c(2, 4,4))
+
+ggsave(here("Output","Composite_BACI.pdf"), width = 8, 
+       height = 16, device = cairo_pdf)
+
+
+#### Make same plot but with means instead of reaction norms
 
 summary(lmer(rate_sqrt ~ removal_control*before_after + cover_change_adj +(1|pool_id), Long_all %>%
                filter(name == "nn_umol_l",
                       foundation_spp == "Mytilus")))
+
+NN_rate_2<-Long_all %>%
+  filter(name == "nn_umol_l",
+         foundation_spp == "Mytilus") %>%
+  mutate(month = factor(ifelse(before_after == "Before", "July", "August (Upwelling)"), levels = c("July", "August (Upwelling)"))) %>%
+  group_by(pool_id, removal_control)%>%
+  reframe(difference = rate_m2_hr[before_after == "After"] - rate_m2_hr[before_after == "Before"]) %>%
+  ggplot(aes(x = removal_control, y = difference))+
+  geom_point(alpha = 0.2)+
+  stat_summary(size = 1)+
+  labs(x = " ",
+       y = "&Delta;Nitrate+Nitrite <br>(&mu;mol m<sup>-2</sup> hr<sup>-1</sup>)")+
+  theme_bw()+
+  theme(axis.text = element_text(size = 12),
+        axis.title = element_markdown(size = 14))
+
+HBac_rate_2<-Long_all %>%
+  filter(name == "heterotrophic_bacterioplankton_m_l",
+         foundation_spp == "Phyllospadix") %>%
+  mutate(month = factor(ifelse(before_after == "Before", "July", "August (Upwelling)"), levels = c("July", "August (Upwelling)"))) %>%
+  group_by(pool_id, removal_control)%>%
+  reframe(difference = rate_m2_hr[before_after == "After"] - rate_m2_hr[before_after == "Before"]) %>%
+  ggplot(aes(x = removal_control, y = difference))+
+  geom_point(alpha = 0.2, color = "#34c230")+
+  stat_summary(size = 1, color = "#34c230")+
+  labs(x = " ",
+       y = "&Delta;Heterotrophic Bacteria <br> (# m<sup>-2</sup> hr<sup>-1</sup>)")+
+  theme_bw()+
+  theme(axis.text = element_text(size = 12),
+        axis.title = element_markdown(size = 14))
+
+NN_V2<-values %>%
+  filter(name == "nn_umol_l",
+         foundation_spp == "Mytilus")%>%
+  group_by(pool_id, removal_control)%>%
+  reframe(difference = mean_val[month == "August (Upwelling)"] - mean_val[month == "July"]) %>%
+  filter(difference <15)%>%
+  ggplot(aes(x = removal_control, y = difference))+
+  geom_point(alpha = 0.2)+
+  stat_summary(size = 1)+
+  labs(x = " ",
+       y = "&Delta;N+N </sup> <br>(&mu;mol L<sup>-1</sup>)")+
+  theme_bw()+
+  theme(axis.text = element_text(size = 12),
+        axis.title = element_markdown(size = 14))
+
+NH4_V2<-values %>%
+  filter(name == "nh4_umol_l",
+         foundation_spp == "Mytilus")%>%
+  group_by(pool_id, removal_control)%>%
+  reframe(difference = mean_val[month == "August (Upwelling)"] - mean_val[month == "July"]) %>%
+  filter(difference > -20)%>%
+  ggplot(aes(x = removal_control, y = difference))+
+  geom_point(alpha = 0.2)+
+  stat_summary(size = 1)+
+  labs(x = " ",
+       y = "&Delta;NH<sub>4</sub><sup>+</sup> <br>(&mu;mol L<sup>-1</sup>)")+
+  theme_bw()+
+  theme(axis.text = element_text(size = 12),
+        axis.title = element_markdown(size = 14))
+
+BIX_V2<-values %>%
+  filter(name == "bix",
+         foundation_spp == "Mytilus")%>%
+  group_by(pool_id, removal_control)%>%
+  reframe(difference = mean_val[month == "August (Upwelling)"] - mean_val[month == "July"]) %>%
+  filter(difference > -20)%>%
+  ggplot(aes(x = removal_control, y = difference))+
+  geom_point(alpha = 0.2)+
+  stat_summary(size = 1)+
+  labs(x = " ",
+       y = "&Delta;BIX")+
+  theme_bw()+
+  theme(axis.text = element_text(size = 12),
+        axis.title = element_markdown(size = 14))
+
+Hbac_V2<-values %>%
+  filter(name == "heterotrophic_bacterioplankton_m_l",
+         foundation_spp == "Phyllospadix")%>%
+  group_by(pool_id, removal_control)%>%
+  reframe(difference = mean_val[month == "August (Upwelling)"] - mean_val[month == "July"]) %>%
+  ggplot(aes(x = removal_control, y = difference))+
+  geom_point(alpha = 0.2, color = "#34c230")+
+  stat_summary(size = 1, color = "#34c230")+
+   labs(x = " ",
+       y = "&Delta;Heterotrophic Bacteria <br> (# mL<sup>-1</sup>)")+
+  theme_bw()+
+  theme(axis.text = element_text(size = 12),
+        axis.title = element_markdown(size = 14))
+
+(BC_int&theme(strip.text = element_blank()))/((NN_rate_2/NN_V2/HBac_rate_2)|(NH4_V2/BIX_V2/Hbac_V2))+plot_layout(guides = "collect",widths = c(1,1,1), heights = c(3, 5,5))
+
+ggsave(here("Output","Composite_BACI_means.pdf"), width = 7, 
+       height = 13, device = cairo_pdf)
