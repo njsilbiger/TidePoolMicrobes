@@ -261,6 +261,9 @@ r2<-mods_BACI%>%
   ) %>%
   mutate(alpha = ifelse(p.value<= 0.055,1, 0.6))
 
+write_csv(mods_BACI%>%
+            unnest(tidy), file = here("Output","Rates_models.csv"))
+
 ## Do the models with the avaerage concentration 
 values<-data_all %>%
   ungroup()%>%
@@ -322,6 +325,9 @@ conc2<-mods2%>%
     #  name !="heterotrophic_bacterioplankton_m_l"
   ) %>%
   mutate(alpha = ifelse(p.value<= 0.055,1, 0.6))
+
+write_csv(mods2%>%
+            unnest(tidy), file = here("Output","Concentration_models.csv"))
 
 ### make a plot of the interaction terms
 con_int<-conc2 %>%
@@ -449,6 +455,9 @@ conc1<-mods3%>%
         legend.position = "none")
 
 
+write_csv(mods3%>%
+            unnest(tidy), here("Output","Concentration_controlonlymods.csv"))
+
 #### do it again for the rates
 mods<-Rates %>%
   filter(day_night == "Day",
@@ -529,6 +538,9 @@ r1<-mods%>%
         axis.text.x = element_text(size = 12),
         axis.title.x = element_markdown(size = 14),
         legend.position = "none")
+
+write_csv(mods%>%
+            unnest(tidy), here("Output","Rates_controlonlymods.csv"))
 
 
 r1|conc1
@@ -990,12 +1002,12 @@ Rates_wide %>%
 ggsave(here("Output","het_DO_regression.pdf"), width = 8, height = 4)
 
 
-DO_het_mod<-lmer(data = Day_rates_wide2 %>%  
+DO_het_mod<-lm(data = Rates_wide %>%  
                    mutate(removal = case_when(removal_control == "Control"~"Unmanipulated",
                                               removal_control == "Removal"& month == "July" ~ "Unmanipulated",
                                               removal_control == "Removal"& month != "July" ~ "Foundation spp. removed"))%>%
                    mutate(removal = factor(removal, levels = c("Unmanipulated","Foundation spp. removed")))%>%
-                   filter(foundation_spp != "Ocean"), heterotrophic_bacterioplankton_m_l~do_mg_l*removal+(1|pool_id))
+                   filter(foundation_spp != "Ocean"), heterotrophic_bacterioplankton_m_l~do_mg_l*removal)
 
 anova(DO_het_mod)
 summary(DO_het_mod)
