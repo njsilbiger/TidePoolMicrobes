@@ -27,6 +27,57 @@ MetaData<-read_csv(here("Data","Microbe_Clean","TidePoolDescriptions.csv"))
 
 data_all<-read_csv(here("Data","Microbe_Clean","joinedData_edited.csv"))
 
+# read in the BUETI 
+BT<-read_csv(here("Data", "BUETI.csv"))
+#mmol m-1 s-1
+CT<-read_csv(here("Data", "CUTI.csv"))
+#m2 s-1
+# https://oceanview.pfeg.noaa.gov/products/upwelling/cutibeuti
+
+#CUTI and BEUTI
+#Jacox, M. G., C. A. Edwards, E. L. Hazen, and S. J. Bograd (2018) Coastal upwelling revisited: Ekman, Bakun, and improved upwelling indices for the U.S. west coast. Journal of Geophysical Research, doi:10.1029/2018JC014187. 
+#Coastal Upwelling Transport Index
+
+reverse2_trans <- function() {
+  trans_new(
+    "reverse2",
+    function(x) -1 * as.numeric(x), # Force values to be numeric for Date objects
+    function(x) -1 * as.numeric(x)
+  )
+}
+
+CT %>%
+  filter(latitude == 45) %>%
+  mutate(date = as_date(date)) %>%
+  ggplot(aes(x = date, y = CUTI))+
+  geom_hline(aes(yintercept = 0), linetype = 2)+
+  geom_ribbon(aes(xmin = ymd("2019-07-08"), 
+                  xmax =ymd("2019-07-09") ), alpha = 0.2, fill = "red")+
+  geom_ribbon(aes(xmin = ymd("2019-08-05"), 
+                  xmax =ymd("2019-08-06") ), alpha = 0.2, fill = "red")+
+  geom_point()+
+  geom_point(data = CT %>%
+               mutate(date = as_date(date)) %>%
+               filter(latitude == 45,
+                      date >= ymd("2019-07-08")&
+                        date <= ymd("2019-07-09") |
+                        date >= ymd("2019-08-05")&
+                        date <= ymd("2019-08-06")
+                        ),
+             color = "red")+
+  geom_path()+
+  labs(x = "",
+       y = "CUTI m<sup>2</sup> s<sup>-1</sup>")+
+  coord_flip()+
+  scale_x_continuous(trans = c("date", "reverse2"))+
+  theme_bw()+
+  theme(axis.title = element_markdown(size = 14),
+        axis.text = element_text(size = 12),
+        panel.grid = element_blank())
+ 
+ggsave(here("Output","CUTI.pdf"), height = 8, width = 6)
+
+
 
 ### show difference from the ocean
 data_all<-data_all %>%
@@ -889,3 +940,62 @@ Hbac_V2<-values %>%
 
 ggsave(here("Output","Composite_BACI_means.pdf"), width = 7, 
        height = 13, device = cairo_pdf)
+
+# Plot showing relationship between DO and HBac
+
+Rates_wide<- Rates %>%  
+  filter(day_night == "Day") %>%
+  filter(foundation_spp != "Ocean") %>%
+  select(-c(change:vol, rate_hr))%>%
+  pivot_wider(values_from = rate_m2_hr, names_from = name) %>%  
+  mutate(month = factor(ifelse(before_after == "Before", "July", "August (Upwelling)"), levels = c("July", "August (Upwelling)")))
+
+
+Rates_wide %>%
+  mutate(removal = case_when(removal_control == "Control"~"Unmanipulated",
+                             removal_control == "Removal"& month == "July" ~ "Unmanipulated",
+                             removal_control == "Removal"& month != "July" ~ "Foundation species removed"))%>%
+  mutate(removal = factor(removal, levels = c("Unmanipulated","Foundation species removed")))%>%
+  mutate(foundation_spp = ifelse(foundation_spp == "Mytilus", "Mussel-Dominated","Surfgrass-Dominated"))%>%
+  ggplot(aes(y = heterotrophic_bacterioplankton_m_l, x = do_mg_l))+
+  geom_hline(aes(yintercept  = 0), lty = 2)+
+  geom_vline(aes(xintercept  = 0), lty = 2)+
+  geom_point(aes(color = foundation_spp, shape = month))+
+  # geom_text(aes(x = 175, y = 0.1, label = "p = 0.036"))+
+  #  ylim(-.3,.3)+
+  geom_smooth(method ="lm", color = "grey3", data = Rates_wide %>%  
+                mutate(removal = case_when(removal_control == "Control"~"Unmanipulated",
+                                           removal_control == "Removal"& month == "July" ~ "Unmanipulated",
+                                           removal_control == "Removal"& month != "July" ~ "Foundation species removed"))%>%
+                mutate(removal = factor(removal, levels = c("Unmanipulated","Foundation species removed")))%>%
+                filter(foundation_spp != "Ocean",
+                       removal == "Unmanipulated"))+
+  scale_color_manual(values = c("black","#34c230"))+
+  scale_shape_manual(values = c(1,16))+
+  labs(y = "Heterotrophic bacterial production <br> (# m<sup>-2</sup> hr<sup>-1</sup>)",
+       x = "DO production <br> (mg m<sup>-2</sup> hr<sup>-1</sup>)",
+       shape = "Sampling Month",
+       color = " Foundation Species")+
+  facet_wrap(~removal, scales = "free_x")+
+  theme_bw()+
+  theme(panel.grid = element_blank(),
+        axis.title.x = element_markdown(size = 14),
+        axis.title.y = element_markdown(size = 14),
+        axis.text = element_text(size = 12),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 14),
+        legend.title = element_text(size = 10),
+        legend.text = element_text(size = 8)
+  )
+ggsave(here("Output","het_DO_regression.pdf"), width = 8, height = 4)
+
+
+DO_het_mod<-lmer(data = Day_rates_wide2 %>%  
+                   mutate(removal = case_when(removal_control == "Control"~"Unmanipulated",
+                                              removal_control == "Removal"& month == "July" ~ "Unmanipulated",
+                                              removal_control == "Removal"& month != "July" ~ "Foundation spp. removed"))%>%
+                   mutate(removal = factor(removal, levels = c("Unmanipulated","Foundation spp. removed")))%>%
+                   filter(foundation_spp != "Ocean"), heterotrophic_bacterioplankton_m_l~do_mg_l*removal+(1|pool_id))
+
+anova(DO_het_mod)
+summary(DO_het_mod)
