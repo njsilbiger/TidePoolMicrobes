@@ -28,9 +28,9 @@ MetaData<-read_csv(here("Data","Microbe_Clean","TidePoolDescriptions.csv"))
 data_all<-read_csv(here("Data","Microbe_Clean","joinedData_edited.csv"))
 
 # read in the BUETI 
-BT<-read_csv(here("Data", "BUETI.csv"))
+#BT<-read_csv(here("Data","Microbe_Clean", "BUETI.csv"))
 #mmol m-1 s-1
-CT<-read_csv(here("Data", "CUTI.csv"))
+CT<-read_csv(here("Data","Microbe_Clean",  "CUTI.csv"))
 #m2 s-1
 # https://oceanview.pfeg.noaa.gov/products/upwelling/cutibeuti
 
