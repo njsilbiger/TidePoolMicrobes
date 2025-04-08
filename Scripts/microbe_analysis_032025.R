@@ -1009,5 +1009,15 @@ DO_het_mod<-lm(data = Rates_wide %>%
                    mutate(removal = factor(removal, levels = c("Unmanipulated","Foundation spp. removed")))%>%
                    filter(foundation_spp != "Ocean"), heterotrophic_bacterioplankton_m_l~do_mg_l*removal)
 
+
 anova(DO_het_mod)
 summary(DO_het_mod)
+
+# get the ocean temperatures
+data_all %>%
+  filter(day_night == "Day",
+         removal_control == "Ocean") %>%
+  select(before_after, temp_pool) %>%
+  group_by(before_after)%>%
+  summarise(mean_temp = mean(temp_pool, na.rm = TRUE),
+            se_temp = sd(temp_pool)/sqrt(n()))
