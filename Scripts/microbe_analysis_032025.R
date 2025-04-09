@@ -1021,3 +1021,11 @@ data_all %>%
   group_by(before_after)%>%
   summarise(mean_temp = mean(temp_pool, na.rm = TRUE),
             se_temp = sd(temp_pool)/sqrt(n()))
+
+data_all %>%
+  filter(day_night == "Day") %>%
+  select(foundation_spp, before_after,removal_control, nh4_umol_l) %>%
+  group_by(foundation_spp,before_after, removal_control)%>%
+  summarise(mean_temp = mean(nh4_umol_l, na.rm = TRUE),
+            se_temp = sd(nh4_umol_l)/sqrt(n()))
+
