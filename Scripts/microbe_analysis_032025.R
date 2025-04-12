@@ -17,7 +17,7 @@ library(broom)
 library(broom.mixed)
 library(ggh4x)
 library(brms)
-librbary(scales)
+library(scales)
 
 
 ### read in data #########
@@ -210,10 +210,13 @@ mods_BACI<-Rates %>%
   filter(day_night == "Day",
          foundation_spp != "Ocean",
          removal_control != "Ocean")%>%
-  filter(name %in% c("nn_umol_l","heterotrophic_bacterioplankton_m_l","nh4_umol_l", "m_c","bix","hix") )%>%
-  mutate(rate_m2_hr_sqrt = sign(rate_m2_hr)*sqrt(abs(rate_m2_hr)))%>%
+  filter(name %in% c("nn_umol_l","heterotrophic_bacterioplankton_m_l","nh4_umol_l", "m_c","bix","hix","do_mg_l") )%>%
+  mutate(rate_m2_hr_sqrt = sign(rate_m2_hr)*sqrt(abs(rate_m2_hr)),
+         rate_m2_hr_log = sign(rate_m2_hr)*log(abs(rate_m2_hr))
+         )%>%
   group_by(foundation_spp, name)%>%
-  mutate(rate_diff_scale = as.numeric(scale(rate_m2_hr_sqrt, scale = TRUE,center = TRUE))
+  mutate(#rate_diff_scale = as.numeric(scale(rate_m2_hr_sqrt, scale = TRUE,center = TRUE))
+         rate_diff_scale = as.numeric(scale(rate_m2_hr_sqrt, scale = TRUE,center = TRUE))
          #  rate_hr_scale = as.numeric(scale(rate_m2_hr, scale = TRUE,center = TRUE))
   ) %>%
   nest() %>%
@@ -223,7 +226,7 @@ mods_BACI<-Rates %>%
                           data = df)
                      })) %>%
   mutate(
-    tidy = map(model, tidy),
+    tidy = map(model, function(x)tidy(x,effects="fixed")),
     glance = map(model, glance)
   ) %>%
   mutate(nicenames = case_when(
@@ -247,7 +250,8 @@ mods_BACI<-Rates %>%
                                                   "&Delta;BIX" ,
                                                   "&Delta;M:C",
                                                   "&Delta;HIX",
-                                                  "&Delta;Heterotrophic Bacteria"
+                                                  "&Delta;Heterotrophic Bacteria",
+                                                  "&Delta;fDOM"
                                                   
   )))
 
@@ -273,14 +277,16 @@ values<-data_all %>%
   mutate(prot = tyrosine_like+tryptophan_like+ phenylalanine_like,
          humic = ultra_violet_humic_like+visible_humic_like+marine_humic_like,
          total_fDOM = humic+prot) %>%
-  select(month,pool_id, day_night, time_point,removal_control, foundation_spp,do_mg_l,heterotrophic_bacterioplankton_m_l:autotrophic_pico_eukaryotes_m_l,prot,humic,m_c, bix, hix,fi, nn_umol_l, nh4_umol_l) %>%
+  select(month,pool_id, day_night, time_point,removal_control, foundation_spp,do_mg_l,heterotrophic_bacterioplankton_m_l:autotrophic_pico_eukaryotes_m_l,prot,humic,m_c,total_fDOM, bix, hix,fi, nn_umol_l, nh4_umol_l) %>%
   pivot_longer(cols = do_mg_l:nh4_umol_l) %>%
   group_by(foundation_spp, pool_id,removal_control,name, month) %>%
   summarise(mean_val = mean(value, na.rm = TRUE))%>%
-  mutate(mean_val_sqrt = sqrt(mean_val))%>%
-  filter(name %in% c("nn_umol_l","heterotrophic_bacterioplankton_m_l","nh4_umol_l", "total_fDOM","m_c","bix","hix") )%>%
+  mutate(mean_val_sqrt = sqrt(mean_val),
+         mean_val_log = log(mean_val))%>%
+  filter(name %in% c("nn_umol_l","heterotrophic_bacterioplankton_m_l","nh4_umol_l", "do_mg_l","m_c","bix","hix") )%>%
   group_by(foundation_spp, name)%>%
-   mutate(value_scale = as.numeric(scale(mean_val_sqrt, scale = TRUE,center = TRUE))) %>%
+#   mutate(value_scale = as.numeric(scale(mean_val_sqrt, scale = TRUE,center = TRUE))) %>%
+  mutate(value_scale = as.numeric(scale(mean_val_sqrt, scale = TRUE,center = TRUE))) %>%
   ungroup()%>%
   mutate(nicenames = case_when(
     name == "heterotrophic_bacterioplankton_m_l" ~ "&Delta;Heterotrophic Bacteria",
@@ -297,7 +303,8 @@ values<-data_all %>%
                                                   "&Delta;BIX" ,
                                                   "&Delta;M:C",
                                                   "&Delta;HIX",
-                                                  "&Delta;Heterotrophic Bacteria"
+                                                  "&Delta;Heterotrophic Bacteria",
+                                                  "&Delta;fDOM"
                                                   
   )))
 
@@ -312,9 +319,10 @@ mods2<-values %>%
                        lmer(value_scale~ removal_control*before_after+(1|pool_id), data = df) #log transformed log(abs(value_diff_scale))*sign(value_diff_scale)
                      })) %>%
   mutate(
-    tidy = map(model, tidy),
+    map(model, function(x)tidy(x,effects="fixed")),
     glance = map(model, glance)
-  )
+  ) %>%
+  rename(tidy = `map(model, function(x) tidy(x, effects = "fixed"))`)
 
 # tidy the concentrations
 conc2<-mods2%>%
@@ -379,7 +387,7 @@ Unmamipulated_mean<-data_all %>%
          total_fDOM = prot+humic) %>%
   select(month, pool_id,before_after, removal_control, foundation_spp,do_mg_l,heterotrophic_bacterioplankton_m_l:autotrophic_pico_eukaryotes_m_l,prot,m_c, bix,hix, humic,total_fDOM, nn_umol_l, nh4_umol_l) %>%
   pivot_longer(cols = do_mg_l:nh4_umol_l) %>%
-  filter(name %in% c("nn_umol_l","heterotrophic_bacterioplankton_m_l","nh4_umol_l", "m_c","bix","hix") )%>%
+  filter(name %in% c("nn_umol_l","heterotrophic_bacterioplankton_m_l","nh4_umol_l", "m_c","bix","hix","do_mg_l") )%>%
   group_by(foundation_spp, pool_id,removal_control, before_after,name) %>%
   summarise(mean_val = mean(value, na.rm = TRUE)) %>% # get mean for the low tide
   mutate(together = paste(removal_control, before_after),
@@ -420,7 +428,7 @@ mods3<-Unmamipulated_mean %>%
                        lm(value_scale~ foundation_spp*before_after, data = df) #log transformed log(abs(value_diff_scale))*sign(value_diff_scale)
                      })) %>%
   mutate(
-    tidy = map(model, tidy),
+    tidy = map(model, function(x)tidy(x,effects="fixed")),
     glance = map(model, glance)
   )
 
@@ -468,7 +476,7 @@ mods<-Rates %>%
   filter(together != "Removal After"
          #  removal_control == "Control"
   )%>%
-  filter(name %in% c("m_c","bix", "nn_umol_l","heterotrophic_bacterioplankton_m_l","nh4_umol_l", "hix") )%>%
+  filter(name %in% c("m_c","bix", "nn_umol_l","heterotrophic_bacterioplankton_m_l","nh4_umol_l", "hix","do_mg_l") )%>%
    group_by(name)%>%
   mutate(#rate_diff_scale = as.numeric(scale(rate_diff, scale = TRUE,center = TRUE)),
       rate_hr_scale = as.numeric(scale(rate_m2_hr_sqrt, scale = TRUE,center = TRUE))) %>%
@@ -480,7 +488,7 @@ mods<-Rates %>%
                      })) %>%
   
    mutate(
-    tidy = map(model, tidy),
+    tidy = map(model, function(x)tidy(x,effects="fixed")),
     glance = map(model, glance)
   ) %>%
   mutate(nicenames = case_when(
@@ -690,7 +698,8 @@ Long_all<-Rates %>%
   mutate(together = paste(before_after, removal_control),
          manipulated = ifelse(together == "After Removal","Manipulated", "Not Manipulated"))%>%
   left_join(Benthic_long) %>%
-  mutate(rate_sqrt = sign(rate_m2_hr)*sqrt(abs(rate_m2_hr)))
+  mutate(rate_sqrt = sign(rate_m2_hr)*sqrt(abs(rate_m2_hr)),
+         rate_log = sign(rate_m2_hr)*log(abs(rate_m2_hr)))
 
 # make a square root function with negatives
 sqrt_fcn<-function(x){sign(x)*sqrt(abs(x))}
