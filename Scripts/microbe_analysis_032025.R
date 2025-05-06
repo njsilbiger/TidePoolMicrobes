@@ -1038,3 +1038,10 @@ data_all %>%
   summarise(mean_temp = mean(nh4_umol_l, na.rm = TRUE),
             se_temp = sd(nh4_umol_l)/sqrt(n()))
 
+
+## explore this and run one-way t-tests
+Long_all %>% 
+  filter(foundation_spp == "Phyllospadix")%>%
+  ggplot(aes(x= rate_m2_hr, y = before_after, color = manipulated))+
+  geom_point(alpha = 0.5)+
+  facet_wrap(~name, scale = "free")
