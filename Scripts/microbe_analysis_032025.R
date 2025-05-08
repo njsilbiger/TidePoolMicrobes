@@ -1041,7 +1041,117 @@ data_all %>%
 
 ## explore this and run one-way t-tests
 Long_all %>% 
-  filter(foundation_spp == "Phyllospadix")%>%
-  ggplot(aes(x= rate_m2_hr, y = before_after, color = manipulated))+
-  geom_point(alpha = 0.5)+
-  facet_wrap(~name, scale = "free")
+  filter(name != "total_fDOM")%>%
+  mutate(man = ifelse(manipulated == "Manipulated", "Foundation spp removed", "Unmanipulated"),
+         foundation_spp = ifelse(foundation_spp == "Mytilus", "Mussels", "Surfgrass")) %>%
+  mutate(nicenames = case_when(
+    name == "do_mg_l" ~ "&Delta;DO <br> (mg)",
+    name == "heterotrophic_bacterioplankton_m_l" ~ "&Delta;Heterotrophic Bacteria <br> (counts)",
+    name == "nh4_umol_l" ~ "&Delta; Ammonium <br> (&mu;mol)",
+    name == "nn_umol_l" ~ "&Delta;Nitrate+Nitrite <br> (&mu;mol)",
+    name == "bix"~"&Delta;BIX" ,
+    name == "hix"~"&Delta;HIX",
+    name == "m_c"~"&Delta;M:C"))%>%
+  mutate(nicenames = factor(nicenames, levels = c("&Delta;DO <br> (mg)",
+                                                  "&Delta; Ammonium <br> (&mu;mol)",
+                                                  "&Delta;Nitrate+Nitrite <br> (&mu;mol)",
+                                                  "&Delta;BIX" ,
+                                                  "&Delta;M:C",
+                                                  "&Delta;HIX",
+                                                  "&Delta;Heterotrophic Bacteria <br> (counts)",
+                                                  "&Delta;fDOM"
+  )))%>%
+  ggplot(aes(x= rate_m2_hr, y = before_after, shape = man))+
+  geom_vline(xintercept = 0, color = "grey")+
+  geom_point(alpha = 0.1)+
+  stat_summary(size = 0.8)+
+  scale_shape_manual(values = c(21,19))+
+  labs(x = "Flux (m<sup>-2</sup> hr<sup>-1</sup>)", 
+       y = "",
+       shape = "")+
+  ggh4x::facet_grid2(nicenames~foundation_spp, scales = "free_x", independent = "x")+
+  theme_bw()+
+  theme(strip.background = element_blank(),
+        strip.placement = "outside", 
+        panel.grid.minor = element_blank(),
+        strip.text = element_markdown(),
+        axis.title.x = element_markdown(),
+        legend.position = "bottom")
+ggsave(filename = here("Output","RawFlux.png"), height = 12, width = 6)
+
+
+## same for the values
+
+# get the ocean values
+ocean <-data_all %>%
+  ungroup()%>%
+  filter(day_night == "Day",
+         removal_control == "Ocean") %>%
+  select(before_after, do_mg_l, heterotrophic_bacterioplankton_m_l, nn_umol_l, nh4_umol_l, bix, hix, m_c) %>%
+  group_by(before_after)%>%
+  summarise_all(.funs = function(x){mean(x, na.rm = TRUE)}) %>%
+  pivot_longer(cols = do_mg_l:m_c) %>%
+  mutate(nicenames = case_when(
+    name == "do_mg_l" ~ "&Delta;DO <br> (mg)",
+    name == "heterotrophic_bacterioplankton_m_l" ~ "&Delta;Heterotrophic Bacteria <br> (counts)",
+    name == "nh4_umol_l" ~ "&Delta; Ammonium <br> (&mu;mol)",
+    name == "nn_umol_l" ~ "&Delta;Nitrate+Nitrite <br> (&mu;mol)",
+    name == "bix"~"&Delta;BIX" ,
+    name == "hix"~"&Delta;HIX",
+    name == "m_c"~"&Delta;M:C"))%>%
+  mutate(nicenames = factor(nicenames, levels = c("&Delta;DO <br> (mg)",
+                                                  "&Delta; Ammonium <br> (&mu;mol)",
+                                                  "&Delta;Nitrate+Nitrite <br> (&mu;mol)",
+                                                  "&Delta;BIX" ,
+                                                  "&Delta;M:C",
+                                                  "&Delta;HIX",
+                                                  "&Delta;Heterotrophic Bacteria <br> (counts)",
+                                                  "&Delta;fDOM"
+  ))) %>%
+  mutate(removal = "Ocean")
+
+
+values %>%
+  mutate(removal = case_when(removal_control == "Control"~"Unmanipulated",
+                             removal_control == "Removal"& month == "July" ~ "Unmanipulated",
+                             removal_control == "Removal"& month != "July" ~ "Foundation species removed"))%>%
+  mutate(removal = factor(removal, levels = c("Unmanipulated","Foundation species removed")))%>%
+  filter(name != "total_fDOM")%>%
+  mutate(foundation_spp = ifelse(foundation_spp == "Mytilus", "Mussels", "Surfgrass")) %>%
+  mutate(before_after = ifelse(month == "July","Before","After"))%>%
+  mutate(nicenames = case_when(
+    name == "do_mg_l" ~ "&Delta;DO <br> (mg)",
+    name == "heterotrophic_bacterioplankton_m_l" ~ "&Delta;Heterotrophic Bacteria <br> (counts)",
+    name == "nh4_umol_l" ~ "&Delta; Ammonium <br> (&mu;mol)",
+    name == "nn_umol_l" ~ "&Delta;Nitrate+Nitrite <br> (&mu;mol)",
+    name == "bix"~"&Delta;BIX" ,
+    name == "hix"~"&Delta;HIX",
+    name == "m_c"~"&Delta;M:C"))%>%
+  mutate(nicenames = factor(nicenames, levels = c("&Delta;DO <br> (mg)",
+                                                  "&Delta; Ammonium <br> (&mu;mol)",
+                                                  "&Delta;Nitrate+Nitrite <br> (&mu;mol)",
+                                                  "&Delta;BIX" ,
+                                                  "&Delta;M:C",
+                                                  "&Delta;HIX",
+                                                  "&Delta;Heterotrophic Bacteria <br> (counts)",
+                                                  "&Delta;fDOM"
+  )))%>%
+  ggplot(aes(x= mean_val, y = before_after, shape = removal))+
+  #geom_vline(xintercept = 0, color = "grey")+
+  geom_point(alpha = 0.1)+
+  stat_summary(size = 0.8)+
+  geom_point(data = ocean, aes(x= value, y = before_after), 
+             color = "lightblue", size = 3)+
+  scale_shape_manual(values = c(19,21,19))+
+  labs(x = "Stock", 
+       y = "",
+       shape = "")+
+  ggh4x::facet_grid2(nicenames~foundation_spp, scales = "free_x", independent = "x")+
+  theme_bw()+
+  theme(strip.background = element_blank(),
+        strip.placement = "outside", 
+        panel.grid.minor = element_blank(),
+        strip.text = element_markdown(),
+        axis.title.x = element_markdown(),
+        legend.position = "bottom")
+ggsave(filename = here("Output","Rawvalue.png"), height = 12, width = 6)
