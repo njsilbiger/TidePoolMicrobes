@@ -287,7 +287,7 @@ r2<-mods_BACI%>%
 write_csv(mods_BACI%>%
             unnest(tidy), file = here("Output","Rates_models.csv"))
 
-## Do the models with the avaerage concentration 
+## Do the models with the average concentration 
 values<-data_all %>%
   ungroup()%>%
   filter(day_night == "Day",
@@ -296,13 +296,16 @@ values<-data_all %>%
   mutate(prot = tyrosine_like+tryptophan_like+ phenylalanine_like,
          humic = ultra_violet_humic_like+visible_humic_like+marine_humic_like,
          total_fDOM = humic+prot) %>%
-  select(month,pool_id, day_night, time_point,removal_control, foundation_spp,do_mg_l,heterotrophic_bacterioplankton_m_l:autotrophic_pico_eukaryotes_m_l,prot,humic,m_c,total_fDOM, bix, hix,fi, nn_umol_l, nh4_umol_l) %>%
+  select(month,pool_id, day_night, time_point,removal_control, foundation_spp,do_mg_l,heterotrophic_bacterioplankton_m_l:autotrophic_pico_eukaryotes_m_l,prot,humic,m_c,
+         tyrosine_like, tryptophan_like, phenylalanine_like, 
+         ultra_violet_humic_like, visible_humic_like, marine_humic_like,total_fDOM, bix, hix,fi, nn_umol_l, nh4_umol_l) %>%
   pivot_longer(cols = do_mg_l:nh4_umol_l) %>%
   group_by(foundation_spp, pool_id,removal_control,name, month) %>%
   summarise(mean_val = mean(value, na.rm = TRUE))%>%
   mutate(mean_val_sqrt = sqrt(mean_val),
          mean_val_log = log(mean_val))%>%
-  filter(name %in% c("nn_umol_l","heterotrophic_bacterioplankton_m_l","nh4_umol_l", "do_mg_l","m_c","bix","hix") )%>%
+  filter(name %in% c("nn_umol_l","heterotrophic_bacterioplankton_m_l","nh4_umol_l", "do_mg_l","m_c","bix","hix", "tyrosine_like", "tryptophan_like", "phenylalanine_like", 
+                     "ultra_violet_humic_like", "visible_humic_like", "marine_humic_like") )%>%
   group_by(foundation_spp, name)%>%
 #   mutate(value_scale = as.numeric(scale(mean_val_sqrt, scale = TRUE,center = TRUE))) %>%
   mutate(value_scale = as.numeric(scale(mean_val_sqrt, scale = TRUE,center = TRUE))) %>%
@@ -314,14 +317,29 @@ values<-data_all %>%
     name == "bix"~"&Delta;BIX" ,
     name == "hix"~"&Delta;HIX",
     name == "m_c"~"&Delta;M:C",
-    name == "total_fDOM"~"&Delta; Total fDOM"
+    name == "total_fDOM"~"&Delta; Total fDOM",
+    name =="tyrosine_like" ~"&Delta;Tyrosine",
+    name == "tryptophan_like" ~ "&Delta;Tryptophan",
+    name == "phenylalanine_like" ~"&Delta;Phenylalanine",
+    name == "ultra_violet_humic_like" ~"&Delta;UV Humic",
+    name == "visible_humic_like" ~"&Delta;Visible Humic",
+    name == "marine_humic_like" ~ "&Delta;Marine Humic",
+    name == "do_mg_l" ~ "&Delta;Dissolved Oxygen"
+    
   )
   )%>%
-  mutate(nicenames = factor(nicenames, levels = c("&Delta;Ammonium",
+  mutate(nicenames = factor(nicenames, levels = c("&Delta;Dissolved Oxygen",
+                                                  "&Delta;Ammonium",
                                                   "&Delta;Nitrate+Nitrite",
                                                   "&Delta;BIX" ,
                                                   "&Delta;M:C",
                                                   "&Delta;HIX",
+                                                  "&Delta;Tyrosine",
+                                                  "&Delta;Tryptophan",
+                                                  "&Delta;Phenylalanine",
+                                                  "&Delta;UV Humic",
+                                                  "&Delta;Visible Humic",
+                                                  "&Delta;Marine Humic",
                                                   "&Delta;Heterotrophic Bacteria",
                                                   "&Delta;fDOM"
                                                   
@@ -1203,6 +1221,9 @@ Long_wfDOM %>%
         axis.title = element_text(size=12))+
   scale_x
 
+ggsave(filename = here("Output","RawFlux_fDOM.pdf"), height = 12, 
+       width = 6, device = cairo_pdf)
+
 ## same for the values
 
 # get the ocean values
@@ -1210,10 +1231,10 @@ ocean <-data_all %>%
   ungroup()%>%
   filter(day_night == "Day",
          removal_control == "Ocean") %>%
-  select(before_after, do_mg_l, heterotrophic_bacterioplankton_m_l, nn_umol_l, nh4_umol_l, bix, hix, m_c) %>%
+  select(before_after, do_mg_l, heterotrophic_bacterioplankton_m_l, nn_umol_l, nh4_umol_l, bix, hix, m_c, tryptophan_like, tyrosine_like, phenylalanine_like, ultra_violet_humic_like, marine_humic_like, visible_humic_like) %>%
   group_by(before_after)%>%
   summarise_all(.funs = function(x){mean(x, na.rm = TRUE)}) %>%
-  pivot_longer(cols = do_mg_l:m_c) %>%
+  pivot_longer(cols = do_mg_l:visible_humic_like) %>%
   mutate(nicenames = case_when(
     name == "do_mg_l" ~ "Dissolved Oxygen <br> (mg L<sup>-1</sup>)",
     name == "heterotrophic_bacterioplankton_m_l" ~ "Heterotrophic Bacteria <br> (counts &mu;L<sup>-1</sup>)",
@@ -1221,15 +1242,26 @@ ocean <-data_all %>%
     name == "nn_umol_l" ~ "Nitrate+Nitrite <br> (&mu;mol L<sup>-1</sup>)",
     name == "bix"~"BIX" ,
     name == "hix"~"HIX",
-    name == "m_c"~"M:C"))%>%
+    name == "m_c"~"M:C",
+    name =="tyrosine_like" ~"Tyrosine <br> (Raman units)",
+    name == "tryptophan_like" ~ "Tryptophan <br> (Raman units)",
+    name == "phenylalanine_like" ~"Phenylalanine <br> (Raman units)",
+    name == "ultra_violet_humic_like" ~"UV Humic <br> (Raman units)",
+    name == "visible_humic_like" ~"Visible Humic <br> (Raman units)",
+    name == "marine_humic_like" ~ "Marine Humic <br> (Raman units)"))%>%
   mutate(nicenames = factor(nicenames, levels = c("Dissolved Oxygen <br> (mg L<sup>-1</sup>)",
                                                   "Ammonium <br> (&mu;mol L<sup>-1</sup>)",
                                                   "Nitrate+Nitrite <br> (&mu;mol L<sup>-1</sup>)",
                                                   "BIX" ,
                                                   "M:C",
                                                   "HIX",
-                                                  "Heterotrophic Bacteria <br> (counts &mu;L<sup>-1</sup>)",
-                                                  "fDOM"
+                                                  "Tyrosine <br> (Raman units)",
+                                                  "Tryptophan <br> (Raman units)",
+                                                  "Phenylalanine <br> (Raman units)",
+                                                  "UV Humic <br> (Raman units)",
+                                                  "Visible Humic <br> (Raman units)",
+                                                  "Marine Humic <br> (Raman units)",
+                                                  "Heterotrophic Bacteria <br> (counts &mu;L<sup>-1</sup>)"
   )))%>%
   mutate(removal = "Ocean")
 
@@ -1249,15 +1281,26 @@ value_plotdata<-values %>%
     name == "nn_umol_l" ~ "Nitrate+Nitrite <br> (&mu;mol L<sup>-1</sup>)",
     name == "bix"~"BIX" ,
     name == "hix"~"HIX",
-    name == "m_c"~"M:C"))%>%
+    name == "m_c"~"M:C",
+    name =="tyrosine_like" ~"Tyrosine <br> (Raman units)",
+    name == "tryptophan_like" ~ "Tryptophan <br> (Raman units)",
+    name == "phenylalanine_like" ~"Phenylalanine <br> (Raman units)",
+    name == "ultra_violet_humic_like" ~"UV Humic <br> (Raman units)",
+    name == "visible_humic_like" ~"Visible Humic <br> (Raman units)",
+    name == "marine_humic_like" ~ "Marine Humic <br> (Raman units)"))%>%
   mutate(nicenames = factor(nicenames, levels = c("Dissolved Oxygen <br> (mg L<sup>-1</sup>)",
                                                   "Ammonium <br> (&mu;mol L<sup>-1</sup>)",
                                                   "Nitrate+Nitrite <br> (&mu;mol L<sup>-1</sup>)",
                                                   "BIX" ,
                                                   "M:C",
                                                   "HIX",
-                                                  "Heterotrophic Bacteria <br> (counts &mu;L<sup>-1</sup>)",
-                                                  "fDOM"
+                                                  "Tyrosine <br> (Raman units)",
+                                                  "Tryptophan <br> (Raman units)",
+                                                  "Phenylalanine <br> (Raman units)",
+                                                  "UV Humic <br> (Raman units)",
+                                                  "Visible Humic <br> (Raman units)",
+                                                  "Marine Humic <br> (Raman units)",
+                                                  "Heterotrophic Bacteria <br> (counts &mu;L<sup>-1</sup>)"
   )))
 
 
@@ -1272,6 +1315,7 @@ scale_x2 <- value_plotdata %>%
   pivot_longer(cols = max:min) %>%
   rename(mean_val = value) %>%
   bind_rows(tibble(nicenames = "Ammonium <br> (&mu;mol L<sup>-1</sup>)", mean_val = 0)) %>%
+  bind_rows(ocean %>% select(before_after, nicenames, mean_val = value)) %>%
   split(~nicenames) |>
   map(~range(.x$mean_val )) |> 
   imap(
@@ -1281,14 +1325,18 @@ scale_x2 <- value_plotdata %>%
     )
   )
 
-value_plotdata %>%
+stocksplot<-value_plotdata %>%
+  filter(name %in% c("do_mg_l","heterotrophic_bacterioplankton_m_l",
+                     "nh4_umol_l","nn_umol_l","bix", "hix","m_c" )) %>%
   mutate(removal = factor(removal, levels = c("Foundation species removed", "Unmanipulated")),
          foundation_spp = ifelse(foundation_spp == "Mussels", "Mussel-Dominated", "Surfgrass-Dominated"))%>%
   ggplot(aes(x= mean_val, y = before_after, shape = removal))+
   #geom_vline(xintercept = 0, color = "grey")+
 #  geom_point(alpha = 0.1)+
   stat_summary(size = 0.8, aes(color = foundation_spp))+
-  geom_point(data = ocean, aes(x= value, y = before_after), 
+  geom_point(data = ocean %>%
+               filter(name %in% c("do_mg_l","heterotrophic_bacterioplankton_m_l",
+                                  "nh4_umol_l","nn_umol_l","bix", "hix","m_c" )), aes(x= value, y = before_after), 
              color = "lightblue", size = 3)+
   scale_shape_manual(values = c(21,19,18))+
   scale_color_manual(values = c("black","#34c230"), guide = "none")+
@@ -1309,3 +1357,40 @@ value_plotdata %>%
   scale_x2
 
 ggsave(filename = here("Output","Rawvalue.pdf"), height = 12, width = 6, device = cairo_pdf)
+
+
+stocksplot_fDOM<-value_plotdata %>%
+  filter(name %in% c("tyrosine_like" , "tryptophan_like",
+                     "phenylalanine_like","ultra_violet_humic_like",
+                     "visible_humic_like", "marine_humic_like" )) %>%
+  mutate(removal = factor(removal, levels = c("Foundation species removed", "Unmanipulated")),
+         foundation_spp = ifelse(foundation_spp == "Mussels", "Mussel-Dominated", "Surfgrass-Dominated"))%>%
+  ggplot(aes(x= mean_val, y = before_after, shape = removal))+
+  #geom_vline(xintercept = 0, color = "grey")+
+  #  geom_point(alpha = 0.1)+
+  stat_summary(size = 0.8, aes(color = foundation_spp))+
+  geom_point(data = ocean %>%  
+               rename(mean_val = value)%>%
+               filter(name %in% c("tyrosine_like" , "tryptophan_like",
+                                                  "phenylalanine_like","ultra_violet_humic_like",
+                                                  "visible_humic_like", "marine_humic_like" )), aes(x= mean_val, y = before_after), 
+             color = "lightblue", size = 3)+
+  scale_shape_manual(values = c(21,19,18))+
+  scale_color_manual(values = c("black","#34c230"), guide = "none")+
+  labs(x = "Stock", 
+       y = "",
+       shape = "")+
+  ggh4x::facet_grid2(nicenames~foundation_spp, scales = "free_x", independent = "x")+
+  theme_bw()+
+  theme(strip.background = element_blank(),
+        strip.placement = "outside", 
+        panel.grid.minor = element_blank(),
+        strip.text = element_markdown(size = 12),
+        axis.title.x = element_markdown(),
+        legend.position = "bottom", 
+        axis.text = element_text(size = 10),
+        axis.title = element_text(size=12),
+        legend.text = element_text(size = 10))+
+  scale_x2
+
+ggsave(filename = here("Output","Rawvalue_fDOM.pdf"), height = 12, width = 6, device = cairo_pdf)
