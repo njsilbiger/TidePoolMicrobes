@@ -1017,13 +1017,15 @@ Rates_wide %>%
                              removal_control == "Removal"& month != "July" ~ "Foundation species removed"))%>%
   mutate(removal = factor(removal, levels = c("Unmanipulated","Foundation species removed")))%>%
   mutate(foundation_spp = ifelse(foundation_spp == "Mytilus", "Mussel-Dominated","Surfgrass-Dominated"))%>%
-  ggplot(aes(y = heterotrophic_bacterioplankton_m_l, x = do_mg_l))+
+  mutate(het_carbon = heterotrophic_bacterioplankton_m_l*20/1e6) %>% # 20 fmol C - nanomol
+  ggplot(aes(y = het_carbon, x = do_mg_l))+
   geom_hline(aes(yintercept  = 0), lty = 2)+
   geom_vline(aes(xintercept  = 0), lty = 2)+
   geom_point(aes(color = foundation_spp, shape = month))+
   # geom_text(aes(x = 175, y = 0.1, label = "p = 0.036"))+
   #  ylim(-.3,.3)+
   geom_smooth(method ="lm", color = "grey3", data = Rates_wide %>%  
+                mutate(het_carbon = heterotrophic_bacterioplankton_m_l*20/1e6) %>%
                 mutate(removal = case_when(removal_control == "Control"~"Unmanipulated",
                                            removal_control == "Removal"& month == "July" ~ "Unmanipulated",
                                            removal_control == "Removal"& month != "July" ~ "Foundation species removed"))%>%
@@ -1032,7 +1034,7 @@ Rates_wide %>%
                        removal == "Unmanipulated"))+
   scale_color_manual(values = c("black","#34c230"))+
   scale_shape_manual(values = c(1,16))+
-  labs(y = "Heterotrophic bacterial production <br> (# m<sup>-2</sup> hr<sup>-1</sup>)",
+  labs(y = "Heterotrophic bacterioplankton <br> (nmol  C  m<sup>-2</sup> hr<sup>-1</sup>)",
        x = "DO production <br> (mg m<sup>-2</sup> hr<sup>-1</sup>)",
        shape = "Sampling Month",
        color = " Foundation Species")+
@@ -1051,11 +1053,12 @@ ggsave(here("Output","het_DO_regression.pdf"), width = 8, height = 4)
 
 
 DO_het_mod<-lm(data = Rates_wide %>%  
+                 mutate(het_carbon = heterotrophic_bacterioplankton_m_l*20/1e6) %>%
                    mutate(removal = case_when(removal_control == "Control"~"Unmanipulated",
                                               removal_control == "Removal"& month == "July" ~ "Unmanipulated",
                                               removal_control == "Removal"& month != "July" ~ "Foundation spp. removed"))%>%
                    mutate(removal = factor(removal, levels = c("Unmanipulated","Foundation spp. removed")))%>%
-                   filter(foundation_spp != "Ocean"), heterotrophic_bacterioplankton_m_l~do_mg_l*removal)
+                   filter(foundation_spp != "Ocean"), het_carbon~do_mg_l*removal)
 
 
 anova(DO_het_mod)
