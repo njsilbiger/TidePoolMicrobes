@@ -25,7 +25,7 @@ BenthicData<-read_csv(here("Data","Microbe_Clean","CommunityData.csv"))
 
 MetaData<-read_csv(here("Data","Microbe_Clean","TidePoolDescriptions.csv"))
 
-data_all<-read_csv(here("Data","Microbe_Clean","joinedData_edited.csv"))
+data_all<-read_csv(here("Data","Microbe_Clean","joinedData_edited2.csv"))
 
 # read in the BUETI 
 #BT<-read_csv(here("Data","Microbe_Clean", "BUETI.csv"))
@@ -123,26 +123,35 @@ data_long<-data_all %>%
   mutate(prot = tyrosine_like+tryptophan_like+ phenylalanine_like,
          humic = ultra_violet_humic_like+visible_humic_like+marine_humic_like,
          total_fDOM = prot+humic) %>%
-  select(month, pool_id,day_night, time_point,removal_control, foundation_spp,do_mg_l,heterotrophic_bacterioplankton_m_l:autotrophic_pico_eukaryotes_m_l,prot, humic,total_fDOM, nn_umol_l, nh4_umol_l) %>%
+  select(month, pool_id,day_night, time_point,removal_control, foundation_spp,do_mg_l,heterotrophic_bacterioplankton_m_l:autotrophic_pico_eukaryotes_m_l,prot, humic,total_fDOM,
+         tyrosine_like,tryptophan_like, phenylalanine_like, ultra_violet_humic_like,
+         visible_humic_like, marine_humic_like, nn_umol_l, nh4_umol_l) %>%
   pivot_longer(cols = do_mg_l:nh4_umol_l) %>%
   group_by(month, name, foundation_spp,time_point, day_night, removal_control)%>%
   summarise(mean_val = mean(value, na.rm = TRUE),
             se_val= sd(value, na.rm = TRUE)/sqrt(n())) %>%
   mutate(time_point_clean = ifelse(time_point == "start","Early", "Late"))%>%
   mutate(nicenames = case_when(
-     name == "autotrophic_pico_eukaryotes_m_l" ~"Autotrophic <br> (# mL<sup>-1</sup>)",
+    name == "autotrophic_pico_eukaryotes_m_l" ~"Autotrophic <br> (# mL<sup>-1</sup>)",
     name == "do_mg_l" ~ "DO <br> (mg L<sup>-1</sup>)",
     name == "heterotrophic_bacterioplankton_m_l" ~ "Heterotrophic <br> (# mL<sup>-1</sup>)",
-      name == "synechoococcus_m_l" ~ "Synechoococcus <br> (# mL<sup>-1</sup>)",
+    name == "synechoococcus_m_l" ~ "Synechoococcus <br> (# mL<sup>-1</sup>)",
     name == "nh4_umol_l" ~ "Ammonium <br> (&mu;mol L<sup>-1</sup>)",
     name == "po_umol_l" ~ "Phosphate <br> (&mu;mol L<sup>-1</sup>)",
     name == "nn_umol_l" ~ "Nitrate+Nitrite <br> (&mu;mol L<sup>-1</sup>)",
-      name == "humic" ~ "Humic-like <br> (Raman units)",
+    name == "humic" ~ "Humic-like <br> (Raman units)",
     name == "total_fDOM" ~"Total fDOM <br> (Raman units)",
-      name == "prot" ~ "Proteinaceous <br> (Raman units)",
+    name == "prot" ~ "Proteinaceous <br> (Raman units)",
     name == "hix"~"HIX",
     name == "bix"~"BIX",
-    name == "m_c"~"M:C")
+    name == "m_c"~"M:C",
+    name =="tyrosine_like" ~"Tyrosine <br> (Raman units)",
+    name == "tryptophan_like" ~ "Tryptophan <br> (Raman units)",
+    name == "phenylalanine_like" ~"Phenylalanine <br> (Raman units)",
+    name == "ultra_violet_humic_like" ~"UV Humic <br> (Raman units)",
+    name == "visible_humic_like" ~"Visible Humic <br> (Raman units)",
+    name == "marine_humic_like" ~ "Marine Humic <br> (Raman units)"
+    )
   ) %>%
   mutate(nicenames = factor(nicenames, levels = c("DO <br> (mg L<sup>-1</sup>)",
                                                   "Ammonium <br> (&mu;mol L<sup>-1</sup>)",
@@ -151,6 +160,12 @@ data_long<-data_all %>%
                                                     "Autotrophic <br> (# mL<sup>-1</sup>)",
                                                     "Synechoococcus <br> (# mL<sup>-1</sup>)",
                                                   "Heterotrophic <br> (# mL<sup>-1</sup>)",
+                                                  "Tyrosine <br> (Raman units)",
+                                                  "Tryptophan <br> (Raman units)",
+                                                  "Phenylalanine <br> (Raman units)",
+                                                  "UV Humic <br> (Raman units)",
+                                                  "Visible Humic <br> (Raman units)",
+                                                  "Marine Humic <br> (Raman units)",
                                                    "Humic-like <br> (Raman units)",
                                                    "Proteinaceous <br> (Raman units)",
                                                   "Total fDOM <br> (Raman units)",
@@ -158,6 +173,9 @@ data_long<-data_all %>%
                                                   
                                                   
   )))
+
+
+
 
 ### create a function that calculated difference between start and end values for each tide pool
 
@@ -183,10 +201,11 @@ Rates<-data_all%>%
          humic = ultra_violet_humic_like+visible_humic_like+marine_humic_like,
          total_fDOM = prot+humic) %>%
   #mutate(sampling_datetime = as.numeric(mdy_hms(paste(sampling_day, sampling_time)))) %>% 
-  select(pool_id:removal_control, time_point, do_mg_l, po_umol_l:nh4_umol_l, heterotrophic_bacterioplankton_m_l:fi, prot, humic,total_fDOM) %>%
-  mutate(heterotrophic_bacterioplankton_m_l = heterotrophic_bacterioplankton_m_l *1000, # convert to per L
-         autotrophic_pico_eukaryotes_m_l =  autotrophic_pico_eukaryotes_m_l*1000,
-         synechoococcus_m_l = synechoococcus_m_l*1000
+  select(pool_id:removal_control, time_point, do_mg_l, po_umol_l:nh4_umol_l, heterotrophic_bacterioplankton_m_l:fi, tyrosine_like,tryptophan_like, phenylalanine_like,
+         ultra_violet_humic_like,visible_humic_like,marine_humic_like,prot, humic,total_fDOM) %>%
+  mutate(heterotrophic_bacterioplankton_m_l = heterotrophic_bacterioplankton_m_l *1e6, # convert to per L
+         autotrophic_pico_eukaryotes_m_l =  autotrophic_pico_eukaryotes_m_l*1e6,
+         synechoococcus_m_l = synechoococcus_m_l*1e6
   )%>%
   pivot_longer(cols = do_mg_l:total_fDOM)%>%
   group_by(pool_id, before_after, removal_control,day_night, foundation_spp, sampling_group, name) %>%
@@ -693,7 +712,9 @@ Long_all<-Rates %>%
   filter(day_night == "Day",
          foundation_spp != "Ocean",
       #   foundation_spp == "Mytilus",
-         name %in% c("bix","do_mg_l","heterotrophic_bacterioplankton_m_l","hix", "m_c", "nh4_umol_l", "nn_umol_l","total_fDOM"))%>%
+         name %in% c("bix","do_mg_l","heterotrophic_bacterioplankton_m_l","hix", "m_c", "nh4_umol_l", "nn_umol_l","total_fDOM", "marine_humic_like", 
+                     "phenylalanine_like", "tryptophan_like",
+                     "tyrosine_like", "ultra_violet_humic_like", "visible_humic_like"))%>%
   filter(name != "total_fDOM" | rate_m2_hr <0.1)%>%
   mutate(together = paste(before_after, removal_control),
          manipulated = ifelse(together == "After Removal","Manipulated", "Not Manipulated"))%>%
@@ -1040,7 +1061,31 @@ data_all %>%
 
 
 ## explore this and run one-way t-tests
-Long_all %>% 
+Rates_ttest <- Long_all %>%
+  group_by(name,foundation_spp, manipulated, before_after)%>%
+  nest() %>%
+  mutate(model = map(data, 
+                     function(df) {
+                       t.test(df$rate_sqrt)
+                     })) %>%
+  
+  mutate(
+    tidy = map(model, tidy),
+    glance = map(model, glance)
+  )  %>% 
+  filter(name != "total_fDOM")%>%
+  unnest(tidy) %>%
+  select(-c(data, model, glance, method, alternative)) %>%
+  ungroup()%>%
+  mutate(before_after = factor(before_after, levels = c("Before","After"))) %>%
+  mutate(significant = ifelse(p.value<0.055, 1, 0)) %>%
+  arrange(foundation_spp, before_after) %>%
+  select(before_after:manipulated, estimate, statistic, p.value, significant) 
+
+
+  write_csv(Rates_ttest, here("Output","ttest_rates.csv"))
+
+Long_wfDOM<-Long_all %>% 
   filter(name != "total_fDOM")%>%
   mutate(man = ifelse(manipulated == "Manipulated", "Foundation spp removed", "Unmanipulated"),
          foundation_spp = ifelse(foundation_spp == "Mytilus", "Mussels", "Surfgrass")) %>%
@@ -1051,7 +1096,14 @@ Long_all %>%
     name == "nn_umol_l" ~ "&Delta;Nitrate+Nitrite <br> (&mu;mol)",
     name == "bix"~"&Delta;BIX" ,
     name == "hix"~"&Delta;HIX",
-    name == "m_c"~"&Delta;M:C"))%>%
+    name == "m_c"~"&Delta;M:C",
+    name =="tyrosine_like" ~"&Delta;Tyrosine <br> (Raman units)",
+    name == "tryptophan_like" ~ "&Delta;Tryptophan <br> (Raman units)",
+    name == "phenylalanine_like" ~"&Delta;Phenylalanine <br> (Raman units)",
+    name == "ultra_violet_humic_like" ~"&Delta;UV Humic <br> (Raman units)",
+    name == "visible_humic_like" ~"&Delta;Visible Humic <br> (Raman units)",
+    name == "marine_humic_like" ~ "&Delta;Marine Humic <br> (Raman units)"
+  ))%>%
   mutate(nicenames = factor(nicenames, levels = c("&Delta;DO <br> (mg)",
                                                   "&Delta; Ammonium <br> (&mu;mol)",
                                                   "&Delta;Nitrate+Nitrite <br> (&mu;mol)",
@@ -1059,26 +1111,97 @@ Long_all %>%
                                                   "&Delta;M:C",
                                                   "&Delta;HIX",
                                                   "&Delta;Heterotrophic Bacteria <br> (counts)",
-                                                  "&Delta;fDOM"
-  )))%>%
-  ggplot(aes(x= rate_m2_hr, y = before_after, shape = man))+
-  geom_vline(xintercept = 0, color = "grey")+
-  geom_point(alpha = 0.1)+
-  stat_summary(size = 0.8)+
+                                                  "&Delta;Tyrosine <br> (Raman units)",
+                                                  "&Delta;Tryptophan <br> (Raman units)",
+                                                  "&Delta;Phenylalanine <br> (Raman units)",
+                                                  "&Delta;UV Humic <br> (Raman units)",
+                                                  "&Delta;Visible Humic <br> (Raman units)",
+                                                  "&Delta;Marine Humic <br> (Raman units)"
+  )))
+
+
+##axes the same
+scale_x <- Long_wfDOM %>%
+  filter(name %in% c("do_mg_l","heterotrophic_bacterioplankton_m_l",
+                     "nh4_umol_l","nn_umol_l","bix", "hix","m_c",
+                     "tyrosine_like" , "tryptophan_like",
+                     "phenylalanine_like","ultra_violet_humic_like",
+                     "visible_humic_like", "marine_humic_like")) %>%
+  ungroup()%>%
+  group_by(foundation_spp, nicenames, before_after, manipulated)%>%
+  summarise(mean_r = mean(rate_m2_hr, na.rm = TRUE),
+            se_r = sd(rate_m2_hr, na.rm = TRUE)/sqrt(n())) %>%
+  mutate(max = mean_r+se_r,
+         min = mean_r - se_r) %>%
+  select(foundation_spp, nicenames, max, min) %>%
+  pivot_longer(cols = max:min) %>%
+  rename(rate_m2_hr = value) %>%
+  bind_rows(tibble(nicenames = "&Delta; Ammonium <br> (&mu;mol)", rate_m2_hr = 0)) %>%
+  split(~nicenames) |>
+  map(~range(.x$rate_m2_hr)) |> 
+  imap(
+    ~ scale_x_facet(
+      nicenames == .y,
+      limits = .x
+    )
+  )
+
+# plot the rates
+Long_wfDOM %>%
+  filter(name %in% c("do_mg_l","heterotrophic_bacterioplankton_m_l",
+                     "nh4_umol_l","nn_umol_l","bix", "hix","m_c" )) %>%
+  left_join(Rates_ttest %>%
+              select(before_after, foundation_spp, name, manipulated, significant))%>%
+ggplot(aes(x= rate_m2_hr, y = before_after, shape = man, color = foundation_spp))+
+  geom_vline(xintercept = 0,  lty = 2)+
+ # geom_point(alpha = 0.1)+
+  stat_summary(size = 0.8, fun.data = "mean_se")+
   scale_shape_manual(values = c(21,19))+
+  scale_color_manual(values = c("black","#34c230"), guide = "none")+
   labs(x = "Flux (m<sup>-2</sup> hr<sup>-1</sup>)", 
        y = "",
        shape = "")+
-  ggh4x::facet_grid2(nicenames~foundation_spp, scales = "free_x", independent = "x")+
+  ggh4x::facet_grid2(nicenames~foundation_spp,scales = "free_x", independent = "x")+
   theme_bw()+
   theme(strip.background = element_blank(),
         strip.placement = "outside", 
         panel.grid.minor = element_blank(),
-        strip.text = element_markdown(),
+        strip.text = element_markdown(size = 12),
         axis.title.x = element_markdown(),
-        legend.position = "bottom")
-ggsave(filename = here("Output","RawFlux.png"), height = 12, width = 6)
+        legend.position = "bottom", 
+        axis.text = element_text(size = 10),
+        axis.title = element_text(size=12))+
+  scale_x
 
+ggsave(filename = here("Output","RawFlux.pdf"), height = 12, 
+       width = 6, device = cairo_pdf)
+
+## cobble params for the supplement
+
+Long_wfDOM %>%
+  filter(name %in% c("tyrosine_like" , "tryptophan_like",
+                     "phenylalanine_like","ultra_violet_humic_like",
+                     "visible_humic_like", "marine_humic_like" )) %>%
+  ggplot(aes(x= rate_m2_hr, y = before_after, shape = man, color = foundation_spp))+
+  geom_vline(xintercept = 0,  lty = 2)+
+  # geom_point(alpha = 0.1)+
+  stat_summary(size = 0.8, fun.data = "mean_se")+
+  scale_shape_manual(values = c(21,19))+
+  scale_color_manual(values = c("black","#34c230"), guide = "none")+
+  labs(x = "Flux (m<sup>-2</sup> hr<sup>-1</sup>)", 
+       y = "",
+       shape = "")+
+  ggh4x::facet_grid2(nicenames~foundation_spp,scales = "free_x", independent = "x")+
+  theme_bw()+
+  theme(strip.background = element_blank(),
+        strip.placement = "outside", 
+        panel.grid.minor = element_blank(),
+        strip.text = element_markdown(size = 12),
+        axis.title.x = element_markdown(),
+        legend.position = "bottom", 
+        axis.text = element_text(size = 10),
+        axis.title = element_text(size=12))+
+  scale_x
 
 ## same for the values
 
@@ -1092,26 +1215,26 @@ ocean <-data_all %>%
   summarise_all(.funs = function(x){mean(x, na.rm = TRUE)}) %>%
   pivot_longer(cols = do_mg_l:m_c) %>%
   mutate(nicenames = case_when(
-    name == "do_mg_l" ~ "&Delta;DO <br> (mg)",
-    name == "heterotrophic_bacterioplankton_m_l" ~ "&Delta;Heterotrophic Bacteria <br> (counts)",
-    name == "nh4_umol_l" ~ "&Delta; Ammonium <br> (&mu;mol)",
-    name == "nn_umol_l" ~ "&Delta;Nitrate+Nitrite <br> (&mu;mol)",
-    name == "bix"~"&Delta;BIX" ,
-    name == "hix"~"&Delta;HIX",
-    name == "m_c"~"&Delta;M:C"))%>%
-  mutate(nicenames = factor(nicenames, levels = c("&Delta;DO <br> (mg)",
-                                                  "&Delta; Ammonium <br> (&mu;mol)",
-                                                  "&Delta;Nitrate+Nitrite <br> (&mu;mol)",
-                                                  "&Delta;BIX" ,
-                                                  "&Delta;M:C",
-                                                  "&Delta;HIX",
-                                                  "&Delta;Heterotrophic Bacteria <br> (counts)",
-                                                  "&Delta;fDOM"
-  ))) %>%
+    name == "do_mg_l" ~ "Dissolved Oxygen <br> (mg L<sup>-1</sup>)",
+    name == "heterotrophic_bacterioplankton_m_l" ~ "Heterotrophic Bacteria <br> (counts &mu;L<sup>-1</sup>)",
+    name == "nh4_umol_l" ~ "Ammonium <br> (&mu;mol L<sup>-1</sup>)",
+    name == "nn_umol_l" ~ "Nitrate+Nitrite <br> (&mu;mol L<sup>-1</sup>)",
+    name == "bix"~"BIX" ,
+    name == "hix"~"HIX",
+    name == "m_c"~"M:C"))%>%
+  mutate(nicenames = factor(nicenames, levels = c("Dissolved Oxygen <br> (mg L<sup>-1</sup>)",
+                                                  "Ammonium <br> (&mu;mol L<sup>-1</sup>)",
+                                                  "Nitrate+Nitrite <br> (&mu;mol L<sup>-1</sup>)",
+                                                  "BIX" ,
+                                                  "M:C",
+                                                  "HIX",
+                                                  "Heterotrophic Bacteria <br> (counts &mu;L<sup>-1</sup>)",
+                                                  "fDOM"
+  )))%>%
   mutate(removal = "Ocean")
 
 
-values %>%
+value_plotdata<-values %>%
   mutate(removal = case_when(removal_control == "Control"~"Unmanipulated",
                              removal_control == "Removal"& month == "July" ~ "Unmanipulated",
                              removal_control == "Removal"& month != "July" ~ "Foundation species removed"))%>%
@@ -1120,29 +1243,55 @@ values %>%
   mutate(foundation_spp = ifelse(foundation_spp == "Mytilus", "Mussels", "Surfgrass")) %>%
   mutate(before_after = ifelse(month == "July","Before","After"))%>%
   mutate(nicenames = case_when(
-    name == "do_mg_l" ~ "&Delta;DO <br> (mg)",
-    name == "heterotrophic_bacterioplankton_m_l" ~ "&Delta;Heterotrophic Bacteria <br> (counts)",
-    name == "nh4_umol_l" ~ "&Delta; Ammonium <br> (&mu;mol)",
-    name == "nn_umol_l" ~ "&Delta;Nitrate+Nitrite <br> (&mu;mol)",
-    name == "bix"~"&Delta;BIX" ,
-    name == "hix"~"&Delta;HIX",
-    name == "m_c"~"&Delta;M:C"))%>%
-  mutate(nicenames = factor(nicenames, levels = c("&Delta;DO <br> (mg)",
-                                                  "&Delta; Ammonium <br> (&mu;mol)",
-                                                  "&Delta;Nitrate+Nitrite <br> (&mu;mol)",
-                                                  "&Delta;BIX" ,
-                                                  "&Delta;M:C",
-                                                  "&Delta;HIX",
-                                                  "&Delta;Heterotrophic Bacteria <br> (counts)",
-                                                  "&Delta;fDOM"
-  )))%>%
+    name == "do_mg_l" ~ "Dissolved Oxygen <br> (mg L<sup>-1</sup>)",
+    name == "heterotrophic_bacterioplankton_m_l" ~ "Heterotrophic Bacteria <br> (counts &mu;L<sup>-1</sup>)",
+    name == "nh4_umol_l" ~ "Ammonium <br> (&mu;mol L<sup>-1</sup>)",
+    name == "nn_umol_l" ~ "Nitrate+Nitrite <br> (&mu;mol L<sup>-1</sup>)",
+    name == "bix"~"BIX" ,
+    name == "hix"~"HIX",
+    name == "m_c"~"M:C"))%>%
+  mutate(nicenames = factor(nicenames, levels = c("Dissolved Oxygen <br> (mg L<sup>-1</sup>)",
+                                                  "Ammonium <br> (&mu;mol L<sup>-1</sup>)",
+                                                  "Nitrate+Nitrite <br> (&mu;mol L<sup>-1</sup>)",
+                                                  "BIX" ,
+                                                  "M:C",
+                                                  "HIX",
+                                                  "Heterotrophic Bacteria <br> (counts &mu;L<sup>-1</sup>)",
+                                                  "fDOM"
+  )))
+
+
+scale_x2 <- value_plotdata %>%
+  ungroup()%>%
+  group_by(foundation_spp, nicenames, before_after, removal)%>%
+  summarise(mean_r = mean(mean_val , na.rm = TRUE),
+            se_r = sd(mean_val , na.rm = TRUE)/sqrt(n())) %>%
+  mutate(max = mean_r+se_r,
+         min = mean_r - se_r) %>%
+  select(foundation_spp, nicenames, max, min) %>%
+  pivot_longer(cols = max:min) %>%
+  rename(mean_val = value) %>%
+  bind_rows(tibble(nicenames = "Ammonium <br> (&mu;mol L<sup>-1</sup>)", mean_val = 0)) %>%
+  split(~nicenames) |>
+  map(~range(.x$mean_val )) |> 
+  imap(
+    ~ scale_x_facet(
+      nicenames == .y,
+      limits = .x
+    )
+  )
+
+value_plotdata %>%
+  mutate(removal = factor(removal, levels = c("Foundation species removed", "Unmanipulated")),
+         foundation_spp = ifelse(foundation_spp == "Mussels", "Mussel-Dominated", "Surfgrass-Dominated"))%>%
   ggplot(aes(x= mean_val, y = before_after, shape = removal))+
   #geom_vline(xintercept = 0, color = "grey")+
-  geom_point(alpha = 0.1)+
-  stat_summary(size = 0.8)+
+#  geom_point(alpha = 0.1)+
+  stat_summary(size = 0.8, aes(color = foundation_spp))+
   geom_point(data = ocean, aes(x= value, y = before_after), 
              color = "lightblue", size = 3)+
-  scale_shape_manual(values = c(19,21,19))+
+  scale_shape_manual(values = c(21,19,18))+
+  scale_color_manual(values = c("black","#34c230"), guide = "none")+
   labs(x = "Stock", 
        y = "",
        shape = "")+
@@ -1151,7 +1300,12 @@ values %>%
   theme(strip.background = element_blank(),
         strip.placement = "outside", 
         panel.grid.minor = element_blank(),
-        strip.text = element_markdown(),
+        strip.text = element_markdown(size = 12),
         axis.title.x = element_markdown(),
-        legend.position = "bottom")
-ggsave(filename = here("Output","Rawvalue.png"), height = 12, width = 6)
+        legend.position = "bottom", 
+        axis.text = element_text(size = 10),
+        axis.title = element_text(size=12),
+        legend.text = element_text(size = 10))+
+  scale_x2
+
+ggsave(filename = here("Output","Rawvalue.pdf"), height = 12, width = 6, device = cairo_pdf)
