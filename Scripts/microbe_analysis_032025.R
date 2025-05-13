@@ -1397,3 +1397,5 @@ stocksplot_fDOM<-value_plotdata %>%
   scale_x2
 
 ggsave(filename = here("Output","Rawvalue_fDOM.pdf"), height = 12, width = 6, device = cairo_pdf)
+
+
