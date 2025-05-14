@@ -1398,4 +1398,49 @@ stocksplot_fDOM<-value_plotdata %>%
 
 ggsave(filename = here("Output","Rawvalue_fDOM.pdf"), height = 12, width = 6, device = cairo_pdf)
 
+#######
+## Make a plot of the benthic data
+
+### order the pools to make it prettier
+PoolOrder<-as_tibble(list(PoolOrder = c(1:32), 
+                          PoolID = factor(c(4,1,20, 18, 5, 27,8, 29,
+                                            21,26,6,3,2,28,22,7,13,31,14,19,30,9,25,
+                                            12,32,15,11,10,17,16,23,24))))%>%
+  mutate(PoolOrder2 = c(1:16,1:16))
+
+
+BenthicData %>%
+  # filter(Before_After == "After")%>%
+  mutate(Before_After = factor(Before_After, levels = c("Before","After")))%>%
+  select(PoolID, Before_After, Removal_Control, Foundation_spp, Macroalgae = macroalgae , Microphytobenthos = Diatoms, `Non-mussel Consumers` = consumers, `Crustose Coralline Algae` = allCCA, Mussels = AdjMusselCover, Surfgrass = AdjSurfgrassCover)%>%
+  mutate(PoolID =  as.factor(PoolID)) %>%
+  mutate(`Rock/Sand` = (100-(Macroalgae+`Non-mussel Consumers`+`Crustose Coralline Algae`+Mussels+Surfgrass)),
+         Macroalgae = Macroalgae - Microphytobenthos,
+         PoolID = fct_reorder2(PoolID,`Rock/Sand`, Mussels)) %>% # the macroalgae includes diatom cover and I want to see the difference
+  left_join(PoolOrder)%>%
+  pivot_longer(cols = Macroalgae:`Rock/Sand`) %>%
+  mutate(name = factor(name, levels = c("Surfgrass","Macroalgae","Mussels","Non-mussel Consumers", "Microphytobenthos","Crustose Coralline Algae","Rock/Sand")),
+         Foundation_spp = ifelse(Foundation_spp == "Mytilus","Mussel-dominated","Surfgrass-dominated"),
+         Before_After = ifelse(Before_After == "Before","Before","After-Impact"),
+         Before_After = factor(Before_After, levels = c("Before","After-Impact")))%>%
+  mutate(Foundation_spp = factor(Foundation_spp, levels = c("Surfgrass-dominated","Mussel-dominated"))) %>%
+  ggplot(aes(x = PoolOrder2, y = value, fill = name))+
+  geom_bar(position = "stack", stat = "identity") +
+  scale_fill_manual(values = cal_palette("tidepool", n = 7, type = "continuous"))+
+  geom_vline(aes(xintercept = 8.5), linewidth = 1.25, color = "white")+
+  labs(x = "",
+       y = "% Cover",
+       fill = "")+
+  theme_classic()+
+  theme(axis.title = element_text(size = 16),
+        axis.text = element_text(size = 14),
+        legend.text = element_text(size = 16),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 16)
+  )+
+  facet_grid(Before_After~Foundation_spp, scale = "free_x")
+
+ggsave(here("Output","BenthicCover.pdf"), width = 10, height = 8, device = cairo_pdf)
 
