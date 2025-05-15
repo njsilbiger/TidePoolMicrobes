@@ -1444,3 +1444,18 @@ BenthicData %>%
 
 ggsave(here("Output","BenthicCover.pdf"), width = 10, height = 8, device = cairo_pdf)
 
+
+
+BenthicData %>%
+  # filter(Before_After == "After")%>%
+  mutate(Before_After = factor(Before_After, levels = c("Before","After")))%>%
+  select(PoolID, Before_After, Removal_Control, Foundation_spp, Macroalgae = macroalgae , Microphytobenthos = Diatoms, `Non-mussel Consumers` = consumers, `Crustose Coralline Algae` = allCCA, Mussels = AdjMusselCover, Surfgrass = AdjSurfgrassCover)%>%
+  mutate(PoolID =  as.factor(PoolID)) %>%
+  mutate(`Rock/Sand` = (100-(Macroalgae+`Non-mussel Consumers`+`Crustose Coralline Algae`+Mussels+Surfgrass)),
+         Macroalgae = Macroalgae - Microphytobenthos,
+         PoolID = fct_reorder2(PoolID,`Rock/Sand`, Mussels)) %>% # the macroalgae includes diatom cover and I want to see the difference
+  pivot_longer(cols = Macroalgae:`Rock/Sand`) %>%
+mutate(Removal_Control = ifelse(Before_After == "Before", "Control", Removal_Control)) %>%
+ group_by(Foundation_spp, Removal_Control, Before_After, name) %>%
+  summarise(mean_cover = mean(value, na.rm = TRUE),
+            se_cover = sd(value, na.rm = TRUE)/sqrt(n()))
