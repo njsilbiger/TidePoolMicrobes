@@ -1477,19 +1477,21 @@ Value_rates<-values %>%
 Value_rates %>%
   filter(value_m_c<2)%>%
   ggplot(aes(x =do_mg_l, y =value_m_c))+
-  geom_point(aes(color = foundation_spp))+
-  geom_smooth(method ="lm", data = Value_rates %>% filter(manipulated == "Control"))+
-  facet_wrap(~manipulated, scales = "free_x")
+  geom_point(aes(color = foundation_spp), alpha = 0.2)+
+  geom_smooth(method ="lm", data = Value_rates %>% filter(manipulated == "Control"), color = "black")+
+  facet_wrap(~manipulated, scales = "free_x")+
+  theme_bw()
 
 mod_mc<-lm(value_m_c~do_mg_l*manipulated, data = Value_rates%>%
              filter(value_m_c<2))
 
 Value_rates %>%
   filter(value_m_c<2)%>%
-  ggplot(aes(x =manipulated, y =value_total_fDOM))+
-  geom_point(alpha = 0.15)+
+  ggplot(aes(x =month, y =value_m_c, color= removal_control, group = removal_control))+
+#  geom_point(alpha = 0.15)+
   stat_summary(size = 1)+
-  facet_wrap(~manipulated, scales = "free_x")+
+ # geom_line()+
+  # facet_wrap(~manipulated, scales = "free_x")+
   theme_bw()
 
 anova(mod_mc)
