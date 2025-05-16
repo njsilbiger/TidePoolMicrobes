@@ -1459,3 +1459,47 @@ mutate(Removal_Control = ifelse(Before_After == "Before", "Control", Removal_Con
  group_by(Foundation_spp, Removal_Control, Before_After, name) %>%
   summarise(mean_cover = mean(value, na.rm = TRUE),
             se_cover = sd(value, na.rm = TRUE)/sqrt(n()))
+
+
+Rates_wide %>%
+  mutate(manipulated = ifelse(month == "July", "Control", removal_control))%>%
+  ggplot(aes(x = do_mg_l, y = m_c))+
+  geom_point()+
+  facet_wrap(~manipulated)
+
+Value_rates<-values %>%
+  select(foundation_spp:month, mean_val, name) %>%
+  pivot_wider(names_from = name, values_from = mean_val, names_prefix = "value_")%>%
+  mutate(value_total_fDOM = value_marine_humic_like+value_phenylalanine_like+value_tryptophan_like+value_tyrosine_like+value_ultra_violet_humic_like+value_visible_humic_like)%>%
+  left_join(Rates_wide) %>%
+  mutate(manipulated = ifelse(month == "July", "Control", removal_control))
+
+Value_rates %>%
+  filter(value_m_c<2)%>%
+  ggplot(aes(x =do_mg_l, y =value_m_c))+
+  geom_point(aes(color = foundation_spp))+
+  geom_smooth(method ="lm", data = Value_rates %>% filter(manipulated == "Control"))+
+  facet_wrap(~manipulated, scales = "free_x")
+
+mod_mc<-lm(value_m_c~do_mg_l*manipulated, data = Value_rates%>%
+             filter(value_m_c<2))
+
+Value_rates %>%
+  filter(value_m_c<2)%>%
+  ggplot(aes(x =manipulated, y =value_total_fDOM))+
+  geom_point(alpha = 0.15)+
+  stat_summary(size = 1)+
+  facet_wrap(~manipulated, scales = "free_x")+
+  theme_bw()
+
+anova(mod_mc)
+summary(mod_mc)
+emmeans(mod_mc)
+
+
+Value_rates %>%
+  filter(value_m_c<2)%>%
+  ggplot(aes(x =value_m_c, y =heterotrophic_bacterioplankton_m_l))+
+  geom_point(aes(color = foundation_spp))+
+  geom_smooth(method ="lm", data = Value_rates %>% filter(manipulated == "Control"))+
+  facet_wrap(~manipulated, scales = "free_x")
