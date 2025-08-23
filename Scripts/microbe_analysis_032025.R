@@ -376,6 +376,8 @@ write_csv(mods2%>%
 
 ### make a plot of the interaction terms
 con_int<-conc2 %>%
+  filter(nicenames %in%c("&Delta;Ammonium", "&Delta;Nitrate+Nitrite","	
+&Delta;BIX","&Delta;M:C","&Delta;Heterotrophic Bacteria"))%>%
 ggplot(aes(y = fct_rev(nicenames), x = estimate, alpha = alpha, color = foundation_spp))+
   scale_color_manual(values = c("black","#34c230"))+
   geom_point(size = 3)+
@@ -393,6 +395,7 @@ ggplot(aes(y = fct_rev(nicenames), x = estimate, alpha = alpha, color = foundati
         legend.position = "none")
 
 r_int<-r2 %>%
+  filter(name %in%c("nh4_umol_l", "nn_umol_l","bix","m_c","heterotrophic_bacterioplankton_m_l"))%>%
   ggplot(aes(y = fct_rev(nicenames), x = estimate, alpha = alpha, color = foundation_spp))+
   scale_color_manual(values = c("black","#34c230"))+
   geom_point(size = 3)+
@@ -471,6 +474,7 @@ mods3<-Unmamipulated_mean %>%
 
 conc1<-mods3%>%
   unnest(tidy)%>%
+  filter(!nicenames %in% c("HIX",NA))%>%
   filter(#p.value <=  0.05,
     #  effect == "fixed",
     term != "(Intercept)",
@@ -556,6 +560,7 @@ mods<-Rates %>%
 
 r1<-mods%>%
   unnest(tidy)%>%
+  filter(!name %in% c("hix","do_mg_l"))%>%
   filter(#p.value <=  0.05,
     #  effect == "fixed",
     term != "(Intercept)",
@@ -590,6 +595,12 @@ write_csv(mods%>%
 
 r1|conc1
 ggsave(here("Output","ControlOnlyEffects_sqrt.pdf"), width = 8, height = 8, device = cairo_pdf)
+
+r1
+ggsave(here("Output","Control_rates.pdf"), width = 5, height = 8, device = cairo_pdf)
+
+conc1
+ggsave(here("Output","Control_conc.pdf"), width = 5, height = 8, device = cairo_pdf)
 
 Benthic_all<-BenthicData %>%
   select(pool_id = PoolID, Foundation_spp:Before_After, MusselCover, SurfgrassCover) %>%
@@ -1607,5 +1618,5 @@ scale_y3 <- value_plotdata %>%
          axis.title = element_text(size=12),
          legend.text = element_text(size = 10))+
    scale_y3
- ggsave(filename = here("Output","values_box.pdf"), height = 10, width = 6, device = cairo_pdf)
+ ggsave(filename = here("Output","values_box.pdf"), height = 9, width = 5, device = cairo_pdf)
  
