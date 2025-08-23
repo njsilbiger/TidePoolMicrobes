@@ -1501,7 +1501,111 @@ emmeans(mod_mc)
 
 Value_rates %>%
   filter(value_m_c<2)%>%
-  ggplot(aes(x =value_m_c, y =heterotrophic_bacterioplankton_m_l))+
+  ggplot(aes(x =value_hix, y =value_heterotrophic_bacterioplankton_m_l, color = foundation_spp))+
   geom_point(aes(color = foundation_spp))+
   geom_smooth(method ="lm", data = Value_rates %>% filter(manipulated == "Control"))+
   facet_wrap(~manipulated, scales = "free_x")
+
+###------------------------ Craig's suggested figures -----------
+#axes the same
+scale_y2 <- Long_wfDOM %>%
+  filter(name %in% c("heterotrophic_bacterioplankton_m_l",
+                     "nh4_umol_l","nn_umol_l","bix", "m_c")) %>%
+  ungroup()%>%
+  group_by(foundation_spp, nicenames, before_after, manipulated)%>%
+  summarise(max = max(rate_m2_hr, na.rm = TRUE),
+            min = min(rate_m2_hr, na.rm = TRUE)) %>%
+  select(foundation_spp, nicenames, max, min) %>%
+  pivot_longer(cols = max:min) %>%
+  rename(rate_m2_hr = value) %>%
+  bind_rows(tibble(nicenames = "&Delta; Ammonium <br> (&mu;mol)", rate_m2_hr = 0)) %>%
+  split(~nicenames) |>
+  map(~range(.x$rate_m2_hr)) |> 
+  imap(
+    ~ scale_y_facet(
+      nicenames == .y,
+      limits = .x
+    )
+  )
+Long_wfDOM %>%
+  filter(before_after == "After")%>%
+  filter(name %in% c("bix","heterotrophic_bacterioplankton_m_l","m_c","nh4_umol_l","nn_umol_l")) %>%
+  ggplot(aes(x = removal_control, y = rate_m2_hr))+
+  geom_hline(yintercept = 0, lty = 2)+
+  geom_violin(aes(fill = foundation_spp), alpha = 0.3, color = NA)+
+  stat_summary(size = 0.7)+
+  scale_fill_manual(values = c("black","#34c230"), guide = "none")+
+  labs(x = "", 
+       y = expression("Rate (value m"^-2~"hr"^-1~")"),
+       shape = "")+
+  ggh4x::facet_grid2(nicenames~foundation_spp, scales = "free_y", independent = "y")+
+  theme_bw()+
+  theme(strip.background = element_blank(),
+        strip.placement = "outside", 
+        panel.grid.minor = element_blank(),
+        strip.text = element_markdown(size = 12),
+        axis.title.x = element_markdown(),
+        legend.position = "bottom", 
+        axis.text = element_text(size = 10),
+        axis.title = element_text(size=12),
+        legend.text = element_text(size = 10))+
+  scale_y2
+ggsave(filename = here("Output","Rates_violin.pdf"), height = 10, width = 6, device = cairo_pdf)
+
+## same with the stocks but include both July and August control only
+ocean_line <- ocean %>%
+  filter(name %in% c("bix","heterotrophic_bacterioplankton_m_l","m_c","nh4_umol_l","nn_umol_l")) %>%
+  mutate(month = factor(ifelse(before_after == "Before", "July", "August"), levels = c("July", "August")))
+
+scale_y3 <- value_plotdata %>%
+  mutate(month = factor(ifelse(before_after == "Before", "July", "August"), levels = c("July", "August")))%>%
+  mutate(mean_val = ifelse(name == "m_c" & mean_val>2, NA, mean_val)) %>%
+  mutate(mean_val = ifelse(name == "bix" & mean_val>2, NA, mean_val)) %>%
+  filter(name %in% c("heterotrophic_bacterioplankton_m_l",
+                     "nh4_umol_l","nn_umol_l","bix", "m_c")) %>%
+  ungroup()%>%
+  group_by(foundation_spp, nicenames, before_after, month)%>%
+  summarise(max = max(mean_val, na.rm = TRUE),
+            min = min(mean_val, na.rm = TRUE)) %>%
+  select(foundation_spp, nicenames, month, max, min) %>%
+  pivot_longer(cols = max:min) %>%
+  rename(mean_val = value) %>%
+  #bind_rows(tibble(nicenames = "&Delta; Ammonium <br> (&mu;mol)", rate_m2_hr = 0)) %>%
+  split(~nicenames) |>
+  map(~range(.x$mean_val)) |> 
+  imap(
+    ~ scale_y_facet(
+      nicenames == .y,
+      limits = .x
+    )
+  )
+
+ value_plotdata %>%
+   mutate(month = factor(ifelse(before_after == "Before", "July", "August"), levels = c("July", "August"))) %>%
+   mutate(mean_val = ifelse(name == "m_c" & mean_val>2, NA, mean_val)) %>%
+   mutate(mean_val = ifelse(name == "bix" & mean_val>2, NA, mean_val)) %>%
+   filter(removal_control == "Control")%>%
+   filter(name %in% c("bix","heterotrophic_bacterioplankton_m_l","m_c","nh4_umol_l","nn_umol_l")) %>%
+   ggplot(aes(x = foundation_spp, y = mean_val))+
+   geom_hline(data = ocean_line, aes(yintercept = value), color = "lightblue", linewidth = 1.5)+
+   geom_boxplot(aes(fill = foundation_spp), alpha = 0.3)+
+ #  stat_summary(size = 0.7)+
+  # geom_point(aes(fill = foundation_spp), shape = 23)+
+   labs(x = "",
+        y = "Concentration or Density")+
+   scale_fill_manual(values = c("black","#34c230"), guide = "none")+
+   
+   ggh4x::facet_grid2(nicenames~month, scales = "free_y", independent = "y")+
+   theme_bw()+
+   theme(strip.background = element_blank(),
+         strip.placement = "outside", 
+         panel.grid.minor = element_blank(),
+         strip.text = element_markdown(size = 12),
+         axis.title.x = element_markdown(),
+         legend.position = "bottom", 
+         axis.text = element_text(size = 10),
+         axis.title = element_text(size=12),
+         legend.text = element_text(size = 10))+
+   scale_y3
+ ggsave(filename = here("Output","values_box.pdf"), height = 10, width = 6, device = cairo_pdf)
+ 
