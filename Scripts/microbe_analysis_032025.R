@@ -380,36 +380,36 @@ con_int<-conc2 %>%
   "&Delta;BIX","&Delta;M:C","&Delta;Heterotrophic Bacteria"))%>%
 ggplot(aes(y = fct_rev(nicenames), x = estimate, alpha = alpha, color = foundation_spp))+
   scale_color_manual(values = c("black","#34c230"))+
-  geom_point(size = 3)+
-  geom_errorbar(aes(xmin = estimate-std.error, xmax = estimate+std.error), width = 0.1)+
+  geom_point(size = 3, position = position_dodge(width = 0.9))+
+  geom_errorbar(aes(xmin = estimate-std.error, xmax = estimate+std.error), width = 0.1, position = position_dodge(width = 0.9))+
   geom_vline(xintercept = 0)+
   labs(x = "Standardized effect size <br> (concentration or density)",
        y = "")+
-  facet_wrap(~foundation_spp, ncol = 1)+
+#  facet_wrap(~foundation_spp, ncol = 1)+
   theme_bw()+
   theme(strip.background = element_blank(),
         strip.text = element_text(size = 14, face = "bold"),
-        axis.text.y = element_blank(),
+        axis.text.y = element_markdown(size = 12),
         axis.text.x = element_text(size = 12),
-        axis.title.x = element_markdown(size = 14),
+        axis.title.x = element_markdown(size = 12),
         legend.position = "none")
 
 r_int<-r2 %>%
   filter(name %in%c("nh4_umol_l", "nn_umol_l","bix","m_c","heterotrophic_bacterioplankton_m_l"))%>%
   ggplot(aes(y = fct_rev(nicenames), x = estimate, alpha = alpha, color = foundation_spp))+
   scale_color_manual(values = c("black","#34c230"))+
-  geom_point(size = 3)+
-  geom_errorbar(aes(xmin = estimate-std.error, xmax = estimate+std.error), width = 0.1)+
+  geom_point(size = 3, position = position_dodge(width = 0.9))+
+  geom_errorbar(aes(xmin = estimate-std.error, xmax = estimate+std.error), width = 0.1, position = position_dodge(width = 0.9))+
   geom_vline(xintercept=0)+
   labs(x = "Standardized effect size <br> (rates m<sup>-2</sup> hr<sup>-1</sup>)",
        y = "")+
-  facet_wrap(~foundation_spp, scale = "free_y", ncol = 1)+
+  #facet_wrap(~foundation_spp, scale = "free_y", ncol = 1)+
   theme_bw()+
   theme(strip.background = element_blank(),
         strip.text = element_text(size = 14, face = "bold"),
         axis.text.y = element_markdown(size = 12),
         axis.text.x = element_text(size = 12),
-        axis.title.x = element_markdown(size = 14),
+        axis.title.x = element_markdown(size = 12),
         legend.position = "none")
 
 BC_int<-r_int|con_int
@@ -1610,16 +1610,19 @@ rate_violin<-Long_wfDOM %>%
   
   filter(before_after == "After")%>%
   filter(name %in% c("bix","heterotrophic_bacterioplankton_m_l","m_c","nh4_umol_l","nn_umol_l")) %>%
-  ggplot(aes(x = removal_control, y = rate_m2_hr))+
+  ggplot(aes(shape = removal_control, y = rate_m2_hr, color = foundation_spp, x = foundation_spp))+
   geom_hline(yintercept = 0, lty = 2)+
-  geom_violin(aes(fill = foundation_spp), alpha = 0.3, color = NA)+
+ # geom_violin(aes(fill = foundation_spp), alpha = 0.3, color = NA)+
   stat_summary(size = 0.7)+
-  scale_fill_manual(values = c("black","#34c230"), guide = "none")+
+  scale_color_manual(values = c("black","#34c230"), guide = "none")+
   labs(x = "", 
       # y = expression("Rate (value m"^-2~"hr"^-1~")"),
        y = "",
        shape = "")+
-  ggh4x::facet_grid2(nicenames2~foundation_spp, scales = "free_y", independent = "y", switch = "y")+
+  scale_shape_manual (values = c(16,1))+
+  facet_wrap(~nicenames2, scales = "free_y",nrow = 1, switch = "y")+
+  
+  #ggh4x::facet_grid2(nicenames2~foundation_spp, scales = "free_y", independent = "y", switch = "y")+
   theme_bw()+
   theme(strip.background = element_blank(),
         strip.placement = "outside", 
@@ -1629,8 +1632,9 @@ rate_violin<-Long_wfDOM %>%
         legend.position = "bottom", 
         axis.text = element_text(size = 10),
         axis.title = element_text(size=12),
-        legend.text = element_text(size = 10))+
-  scale_y2
+        legend.text = element_text(size = 10),
+        aspect.ratio = 1)
+ # scale_y2
 ggsave(filename = here("Output","Rates_violin.pdf"), height = 10, width = 6, device = cairo_pdf)
 
 
@@ -1665,17 +1669,19 @@ ocean_line <- ocean %>%
 mean_violin<-value_plotdata %>%
   filter(before_after == "After")%>%
   filter(name %in% c("bix","heterotrophic_bacterioplankton_m_l","m_c","nh4_umol_l","nn_umol_l")) %>%
-  ggplot(aes(x = removal_control, y = mean_val))+
+  ggplot(aes(x = foundation_spp, color = foundation_spp, y = mean_val, shape = removal_control))+
   #geom_hline(yintercept = 0, lty = 2)+
   geom_hline(data = ocean_line %>% filter(before_after == "After"), aes(yintercept = mean_val), color = "lightblue", linewidth = 1.5)+
-  geom_violin(aes(fill = foundation_spp), alpha = 0.3, color = NA)+
+#  geom_violin(aes(fill = foundation_spp), alpha = 0.3, color = NA)+
   stat_summary(size = 0.7)+
-  scale_fill_manual(values = c("black","#34c230"), guide = "none")+
+  scale_color_manual(values = c("black","#34c230"), guide = "none")+
+  scale_shape_manual (values = c(16,1))+
   labs(x = "", 
        # y = expression("Rate (value m"^-2~"hr"^-1~")"),
        y = "",
        shape = "")+
-  ggh4x::facet_grid2(nicenames~foundation_spp, scales = "free_y", independent = "y", switch = "y")+
+  facet_wrap(~nicenames, scales = "free_y",nrow = 1, switch = "y")+
+ # ggh4x::facet_grid2(~nicenames, scales = "free_y", independent = "y", switch = "y", cols = 1)+
   theme_bw()+
   theme(strip.background = element_blank(),
         strip.placement = "outside", 
@@ -1685,13 +1691,21 @@ mean_violin<-value_plotdata %>%
         legend.position = "bottom", 
         axis.text = element_text(size = 10),
         axis.title = element_text(size=12),
-        legend.text = element_text(size = 10))+
-  scale_y4
+        legend.text = element_text(size = 10),
+        aspect.ratio = 1)
+  #scale_y4
 
-
+((r_int+rate_violin+plot_layout(width  = c(1, 5), height = c(0.25,5)))&theme(axis.text.x = element_blank(), axis.title.x = element_blank()))/
+(con_int+mean_violin+plot_layout(width  = c(1, 5), height = c(0.25,5)))+plot_layout(guides = "collect")
 
 mean_violin|rate_violin
 ggsave(filename = here("Output","Rates_conc_violin.pdf"), height = 10, width = 12, device = cairo_pdf)
+
+(rate_violin&theme(legend.position = "none", axis.text.x = element_blank()))/(mean_violin&theme(legend.position = "none"))
+ggsave(filename = here("Output","Rates_conc_dots.pdf"), height = 6, width = 12,, device = cairo_pdf )
+
+con_int|r_int+theme(aspect.ratio = 1)
+ggsave(filename = here("Output","BCI_together.pdf"), height = 4, width = 8, device = cairo_pdf)
 
 ## same with the stocks but include both July and August control only
 
@@ -1727,7 +1741,7 @@ scale_y3 <- value_plotdata %>%
    ggplot(aes(x = foundation_spp, y = mean_val))+
    geom_hline(data = ocean_line, aes(yintercept = value), color = "lightblue", linewidth = 1.5)+
    geom_boxplot(aes(fill = foundation_spp), alpha = 0.3)+
- #  stat_summary(size = 0.7)+
+   #stat_summary(size = 0.7)+
   # geom_point(aes(fill = foundation_spp), shape = 23)+
    labs(x = "",
         y = " ")+
@@ -1828,3 +1842,47 @@ scale_y3 <- value_plotdata %>%
 
 mean_box|rate_box 
 ggsave(filename = here("Output","Rates_conc_box.pdf"), height = 10, width = 12, device = cairo_pdf)
+
+### plot rates of MC versus rates of HBac
+Long_wfDOM %>%
+ # filter(name %in% c("m_c", "heterotrophic_bacterioplankton_m_l", "bix", "do_mg_l", "marine_humic_like")) %>%
+  select(pool_id, before_after, manipulated, foundation_spp,name, rate_m2_hr) %>%
+  pivot_wider(names_from = name,
+              values_from = rate_m2_hr) %>%
+  ggplot(aes(y = marine_humic_like+visible_humic_like+ultra_violet_humic_like+phenylalanine_like+tryptophan_like+tyrosine_like, x = do_mg_l, color = foundation_spp))+
+  geom_point()+
+  geom_smooth(method = "lm")+
+  facet_wrap(~manipulated, scales = "free")
+
+value_plotdata %>%
+  select(foundation_spp, pool_id, name, month, mean_val, removal) %>%
+  pivot_wider(names_from = name, values_from = mean_val) %>%
+  filter(m_c<2)%>%
+  ggplot(aes(y = marine_humic_like+visible_humic_like+ultra_violet_humic_like+phenylalanine_like+tryptophan_like+tyrosine_like, x = do_mg_l, color = foundation_spp))+
+  geom_point(aes(color = foundation_spp))+
+  geom_smooth(method = "lm")+
+  facet_wrap(~removal, scale = "free")
+
+Long_wfDOM %>%
+  filter(before_after == "After")%>%
+  filter(name %in% c("m_c", "heterotrophic_bacterioplankton_m_l", "do_mg_l")) %>%
+  ggplot(aes(x = foundation_spp, y = rate_m2_hr, color = manipulated))+
+  stat_summary()+
+  facet_wrap(~name, scale = "free")
+
+
+Long_wfDOM %>%
+  filter(before_after == "After")%>%
+  select(pool_id, before_after, manipulated, foundation_spp,name, rate_m2_hr) %>%
+  filter(name %in% c("m_c", "bix","heterotrophic_bacterioplankton_m_l", "do_mg_l","marine_humic_like")) %>%
+  pivot_wider(names_from = name,
+              values_from = rate_m2_hr) %>%
+  ggplot(aes(x = do_mg_l, y = marine_humic_like, color = foundation_spp))+
+  geom_point()+
+    # geom_smooth(data =Long_wfDOM %>%
+    #               filter(before_after == "After")%>%
+    #               select(pool_id, before_after, manipulated, foundation_spp,name, rate_m2_hr) %>%
+    #               filter(name %in% c("m_c", "heterotrophic_bacterioplankton_m_l", "do_mg_l")) %>%
+    #               pivot_wider(names_from = name,
+    #                           values_from = rate_m2_hr) %>% filter(manipulated == "Not Manipulated"), method = "lm", formula = "y~poly(x,2)" )+
+  facet_wrap(~manipulated, scale = "free")
