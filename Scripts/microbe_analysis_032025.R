@@ -1040,7 +1040,7 @@ Hbac_V2<-values %>%
   geom_point(alpha = 0.2, color = "#34c230")+
   stat_summary(size = 1, color = "#34c230")+
    labs(x = " ",
-       y = "&Delta;Heterotrophic Bacteria <br> (# mL<sup>-1</sup>)")+
+       y = "&Delta;Heterotrophic Bacteria <br> (# &mu;L<sup>-1</sup>)")+
   theme_bw()+
   theme(axis.text = element_text(size = 12),
         axis.title = element_markdown(size = 14))
@@ -1592,7 +1592,7 @@ scale_y2 <- Long_wfDOM %>%
       limits = .x
     )
   )
-Long_wfDOM %>%
+rate_violin<-Long_wfDOM %>%
   mutate(nicenames2 = case_when(
     name == "heterotrophic_bacterioplankton_m_l" ~ "&Delta;Heterotrophic Bacteria <br> (counts &mu;m<sup>-2</sup> hr<sup>-1</sup>)",
     name == "nh4_umol_l" ~ "&Delta;Ammonium <br> (&mu;mol m<sup>-2</sup> hr<sup>-1</sup>)",
@@ -1633,10 +1633,67 @@ Long_wfDOM %>%
   scale_y2
 ggsave(filename = here("Output","Rates_violin.pdf"), height = 10, width = 6, device = cairo_pdf)
 
-## same with the stocks but include both July and August control only
+
+### same with stocks for just the after period
+scale_y4 <- value_plotdata %>%
+  filter(before_after == "After")%>%
+  filter(name %in% c("heterotrophic_bacterioplankton_m_l",
+                     "nh4_umol_l","nn_umol_l","bix", "m_c")) %>%
+   ungroup()%>%
+  group_by(foundation_spp, nicenames, removal_control)%>%
+  summarise(max = max(mean_val, na.rm = TRUE),
+            min = min(mean_val, na.rm = TRUE)) %>%
+  select(foundation_spp, nicenames, max, min) %>%
+  pivot_longer(cols = max:min) %>%
+  rename(mean_val = value) %>%
+  split(~nicenames) |>
+  map(~range(.x$mean_val)) |> 
+  imap(
+    ~ scale_y_facet(
+      nicenames == .y,
+      limits = .x
+    )
+  )
+
+# get the ocean data
 ocean_line <- ocean %>%
   filter(name %in% c("bix","heterotrophic_bacterioplankton_m_l","m_c","nh4_umol_l","nn_umol_l")) %>%
-  mutate(month = factor(ifelse(before_after == "Before", "July", "August"), levels = c("July", "August")))
+  mutate(month = factor(ifelse(before_after == "Before", "July", "August"), levels = c("July", "August"))) %>%
+  mutate(mean_val = value)
+
+
+mean_violin<-value_plotdata %>%
+  filter(before_after == "After")%>%
+  filter(name %in% c("bix","heterotrophic_bacterioplankton_m_l","m_c","nh4_umol_l","nn_umol_l")) %>%
+  ggplot(aes(x = removal_control, y = mean_val))+
+  #geom_hline(yintercept = 0, lty = 2)+
+  geom_hline(data = ocean_line %>% filter(before_after == "After"), aes(yintercept = mean_val), color = "lightblue", linewidth = 1.5)+
+  geom_violin(aes(fill = foundation_spp), alpha = 0.3, color = NA)+
+  stat_summary(size = 0.7)+
+  scale_fill_manual(values = c("black","#34c230"), guide = "none")+
+  labs(x = "", 
+       # y = expression("Rate (value m"^-2~"hr"^-1~")"),
+       y = "",
+       shape = "")+
+  ggh4x::facet_grid2(nicenames~foundation_spp, scales = "free_y", independent = "y", switch = "y")+
+  theme_bw()+
+  theme(strip.background = element_blank(),
+        strip.placement = "outside", 
+        panel.grid.minor = element_blank(),
+        strip.text = element_markdown(size = 12),
+        axis.title.x = element_markdown(),
+        legend.position = "bottom", 
+        axis.text = element_text(size = 10),
+        axis.title = element_text(size=12),
+        legend.text = element_text(size = 10))+
+  scale_y4
+
+
+
+mean_violin|rate_violin
+ggsave(filename = here("Output","Rates_conc_violin.pdf"), height = 10, width = 12, device = cairo_pdf)
+
+## same with the stocks but include both July and August control only
 
 scale_y3 <- value_plotdata %>%
   mutate(month = factor(ifelse(before_after == "Before", "July", "August"), levels = c("July", "August")))%>%
@@ -1661,7 +1718,7 @@ scale_y3 <- value_plotdata %>%
     )
   )
 
- value_plotdata %>%
+ mean_box<-value_plotdata %>%
    mutate(month = factor(ifelse(before_after == "Before", "July", "August"), levels = c("July", "August"))) %>%
    mutate(mean_val = ifelse(name == "m_c" & mean_val>2, NA, mean_val)) %>%
    mutate(mean_val = ifelse(name == "bix" & mean_val>2, NA, mean_val)) %>%
@@ -1688,5 +1745,86 @@ scale_y3 <- value_plotdata %>%
          axis.title = element_text(size=12),
          legend.text = element_text(size = 10))+
    scale_y3
+ 
  ggsave(filename = here("Output","values_box.pdf"), height = 9, width = 5, device = cairo_pdf)
  
+ # boxplots with the rates
+ scale_y5 <- Long_wfDOM %>%
+   mutate(month = factor(ifelse(before_after == "Before", "July", "August"), levels = c("July", "August"))) %>%
+   filter(removal_control == "Control")%>%
+   filter(name %in% c("heterotrophic_bacterioplankton_m_l",
+                      "nh4_umol_l","nn_umol_l","bix", "m_c")) %>%
+   mutate(nicenames2 = case_when(
+     name == "heterotrophic_bacterioplankton_m_l" ~ "&Delta;Heterotrophic Bacteria <br> (counts &mu;m<sup>-2</sup> hr<sup>-1</sup>)",
+     name == "nh4_umol_l" ~ "&Delta;Ammonium <br> (&mu;mol m<sup>-2</sup> hr<sup>-1</sup>)",
+     name == "nn_umol_l" ~ "&Delta;Nitrate+Nitrite <br> (&mu;mol m<sup>-2</sup> hr<sup>-1</sup>)",
+     name == "bix"~"&Delta;BIX <br> (m<sup>-2</sup> hr<sup>-1</sup>)" ,
+     name == "m_c"~"&Delta;M:C <br> (m<sup>-2</sup> hr<sup>-1</sup>)",
+   ))%>%
+   mutate(nicenames2 = factor(nicenames2, levels = c(
+     "&Delta;Ammonium <br> (&mu;mol m<sup>-2</sup> hr<sup>-1</sup>)",
+     "&Delta;Nitrate+Nitrite <br> (&mu;mol m<sup>-2</sup> hr<sup>-1</sup>)",
+     "&Delta;BIX <br> (m<sup>-2</sup> hr<sup>-1</sup>)"  ,
+     "&Delta;M:C <br> (m<sup>-2</sup> hr<sup>-1</sup>)" ,
+     "&Delta;Heterotrophic Bacteria <br> (counts &mu;m<sup>-2</sup> hr<sup>-1</sup>)"
+   ))) %>%
+   ungroup()%>%
+   group_by(foundation_spp, nicenames2, before_after, month)%>%
+   summarise(max = max(rate_m2_hr, na.rm = TRUE),
+             min = min(rate_m2_hr, na.rm = TRUE)) %>%
+   select(foundation_spp, nicenames2, max, min) %>%
+   pivot_longer(cols = max:min) %>%
+   rename(rate_m2_hr = value) %>%
+   bind_rows(tibble(nicenames2 = "Ammonium <br> (&mu;mol m<sup>-2</sup> hr<sup>-1</sup>)", rate_m2_hr = 0)) %>%
+   split(~nicenames2) |>
+   map(~range(.x$rate_m2_hr)) |> 
+   imap(
+     ~ scale_y_facet(
+       nicenames2 == .y,
+       limits = .x
+     )
+   )
+ 
+ 
+ rate_box<-Long_wfDOM %>%
+   mutate(nicenames2 = case_when(
+     name == "heterotrophic_bacterioplankton_m_l" ~ "&Delta;Heterotrophic Bacteria <br> (counts &mu;m<sup>-2</sup> hr<sup>-1</sup>)",
+     name == "nh4_umol_l" ~ "&Delta;Ammonium <br> (&mu;mol m<sup>-2</sup> hr<sup>-1</sup>)",
+     name == "nn_umol_l" ~ "&Delta;Nitrate+Nitrite <br> (&mu;mol m<sup>-2</sup> hr<sup>-1</sup>)",
+     name == "bix"~"&Delta;BIX <br> (m<sup>-2</sup> hr<sup>-1</sup>)" ,
+     name == "m_c"~"&Delta;M:C <br> (m<sup>-2</sup> hr<sup>-1</sup>)",
+   ))%>%
+   mutate(nicenames2 = factor(nicenames2, levels = c(
+     "&Delta;Ammonium <br> (&mu;mol m<sup>-2</sup> hr<sup>-1</sup>)",
+     "&Delta;Nitrate+Nitrite <br> (&mu;mol m<sup>-2</sup> hr<sup>-1</sup>)",
+     "&Delta;BIX <br> (m<sup>-2</sup> hr<sup>-1</sup>)"  ,
+     "&Delta;M:C <br> (m<sup>-2</sup> hr<sup>-1</sup>)" ,
+     "&Delta;Heterotrophic Bacteria <br> (counts &mu;m<sup>-2</sup> hr<sup>-1</sup>)"
+   ))) %>%
+ mutate(month = factor(ifelse(before_after == "Before", "July", "August"), levels = c("July", "August"))) %>%
+   filter(removal_control == "Control")%>%
+   filter(name %in% c("bix","heterotrophic_bacterioplankton_m_l","m_c","nh4_umol_l","nn_umol_l")) %>%
+   ggplot(aes(x = foundation_spp, y = rate_m2_hr))+
+   geom_hline(yintercept = 0, lty = 2)+
+   geom_boxplot(aes(fill = foundation_spp), alpha = 0.3)+
+   #  stat_summary(size = 0.7)+
+   # geom_point(aes(fill = foundation_spp), shape = 23)+
+   labs(x = "",
+        y = " ")+
+   scale_fill_manual(values = c("black","#34c230"), guide = "none")+
+   
+   ggh4x::facet_grid2(nicenames2~month, scales = "free_y", independent = "y", switch = "y")+
+   theme_bw()+
+   theme(strip.background = element_blank(),
+         strip.placement = "outside", 
+         panel.grid.minor = element_blank(),
+         strip.text = element_markdown(size = 12),
+         axis.title.x = element_markdown(),
+         legend.position = "bottom", 
+         axis.text = element_text(size = 10),
+         axis.title = element_text(size=12),
+         legend.text = element_text(size = 10))+
+   scale_y5
+
+mean_box|rate_box 
+ggsave(filename = here("Output","Rates_conc_box.pdf"), height = 10, width = 12, device = cairo_pdf)
