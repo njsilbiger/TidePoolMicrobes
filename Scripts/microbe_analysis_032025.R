@@ -376,8 +376,8 @@ write_csv(mods2%>%
 
 ### make a plot of the interaction terms
 con_int<-conc2 %>%
-  filter(nicenames %in%c("&Delta;Ammonium", "&Delta;Nitrate+Nitrite","	
-&Delta;BIX","&Delta;M:C","&Delta;Heterotrophic Bacteria"))%>%
+  filter(nicenames %in%c("&Delta;Ammonium", "&Delta;Nitrate+Nitrite",
+  "&Delta;BIX","&Delta;M:C","&Delta;Heterotrophic Bacteria"))%>%
 ggplot(aes(y = fct_rev(nicenames), x = estimate, alpha = alpha, color = foundation_spp))+
   scale_color_manual(values = c("black","#34c230"))+
   geom_point(size = 3)+
@@ -925,6 +925,7 @@ NN_rate_2<-Long_all %>%
   group_by(pool_id, removal_control)%>%
   reframe(difference = rate_m2_hr[before_after == "After"] - rate_m2_hr[before_after == "Before"]) %>%
   ggplot(aes(x = removal_control, y = difference))+
+  geom_hline(yintercept = 0, lty = 2)+
   geom_point(alpha = 0.2)+
   stat_summary(size = 1)+
   labs(x = " ",
@@ -939,11 +940,12 @@ HBac_rate_2<-Long_all %>%
   mutate(month = factor(ifelse(before_after == "Before", "July", "August (Upwelling)"), levels = c("July", "August (Upwelling)"))) %>%
   group_by(pool_id, removal_control)%>%
   reframe(difference = rate_m2_hr[before_after == "After"] - rate_m2_hr[before_after == "Before"]) %>%
-  ggplot(aes(x = removal_control, y = difference))+
+  ggplot(aes(x = removal_control, y = difference/1000000))+
+  geom_hline(yintercept = 0, lty = 2)+
   geom_point(alpha = 0.2, color = "#34c230")+
   stat_summary(size = 1, color = "#34c230")+
   labs(x = " ",
-       y = "&Delta;Heterotrophic Bacteria <br> (# m<sup>-2</sup> hr<sup>-1</sup>)")+
+       y = "&Delta;Heterotrophic Bacteria <br> (# x 10<sup>6</sup> m<sup>-2</sup> hr<sup>-1</sup>)")+
   theme_bw()+
   theme(axis.text = element_text(size = 12),
         axis.title = element_markdown(size = 14))
@@ -955,6 +957,7 @@ NN_V2<-values %>%
   reframe(difference = mean_val[month == "August (Upwelling)"] - mean_val[month == "July"]) %>%
   filter(difference <15)%>%
   ggplot(aes(x = removal_control, y = difference))+
+  geom_hline(yintercept = 0, lty = 2)+
   geom_point(alpha = 0.2)+
   stat_summary(size = 1)+
   labs(x = " ",
@@ -970,6 +973,7 @@ NH4_V2<-values %>%
   reframe(difference = mean_val[month == "August (Upwelling)"] - mean_val[month == "July"]) %>%
   filter(difference > -20)%>%
   ggplot(aes(x = removal_control, y = difference))+
+  geom_hline(yintercept = 0, lty = 2)+
   geom_point(alpha = 0.2)+
   stat_summary(size = 1)+
   labs(x = " ",
@@ -985,10 +989,43 @@ BIX_V2<-values %>%
   reframe(difference = mean_val[month == "August (Upwelling)"] - mean_val[month == "July"]) %>%
   filter(difference > -20)%>%
   ggplot(aes(x = removal_control, y = difference))+
+  geom_hline(yintercept = 0, lty = 2)+
   geom_point(alpha = 0.2)+
   stat_summary(size = 1)+
   labs(x = " ",
        y = "&Delta;BIX")+
+  theme_bw()+
+  theme(axis.text = element_text(size = 12),
+        axis.title = element_markdown(size = 14))
+
+BIX_V2P<-values %>%
+  filter(name == "bix",
+         foundation_spp == "Phyllospadix")%>%
+  group_by(pool_id, removal_control)%>%
+  reframe(difference = mean_val[month == "August (Upwelling)"] - mean_val[month == "July"]) %>%
+  filter(difference > -20)%>%
+  ggplot(aes(x = removal_control, y = difference))+
+  geom_hline(yintercept = 0, lty = 2)+
+  geom_point(alpha = 0.2, color = "#34c230")+
+  stat_summary(size = 1, color = "#34c230")+
+  labs(x = " ",
+       y = "&Delta;BIX")+
+  theme_bw()+
+  theme(axis.text = element_text(size = 12),
+        axis.title = element_markdown(size = 14))
+
+MC_V2P<-values %>%
+  filter(name == "m_c",
+         foundation_spp == "Phyllospadix")%>%
+  group_by(pool_id, removal_control)%>%
+  reframe(difference = mean_val[month == "August (Upwelling)"] - mean_val[month == "July"]) %>%
+  filter(difference > -20)%>%
+  ggplot(aes(x = removal_control, y = difference))+
+  geom_hline(yintercept = 0, lty = 2)+
+  geom_point(alpha = 0.2, color = "#34c230")+
+  stat_summary(size = 1, color = "#34c230")+
+  labs(x = " ",
+       y = "&Delta;M:C")+
   theme_bw()+
   theme(axis.text = element_text(size = 12),
         axis.title = element_markdown(size = 14))
@@ -999,6 +1036,7 @@ Hbac_V2<-values %>%
   group_by(pool_id, removal_control)%>%
   reframe(difference = mean_val[month == "August (Upwelling)"] - mean_val[month == "July"]) %>%
   ggplot(aes(x = removal_control, y = difference))+
+  geom_hline(yintercept = 0, lty = 2)+
   geom_point(alpha = 0.2, color = "#34c230")+
   stat_summary(size = 1, color = "#34c230")+
    labs(x = " ",
@@ -1007,7 +1045,7 @@ Hbac_V2<-values %>%
   theme(axis.text = element_text(size = 12),
         axis.title = element_markdown(size = 14))
 
-(BC_int&theme(strip.text = element_blank()))/((NN_rate_2/NN_V2/HBac_rate_2)|(NH4_V2/BIX_V2/Hbac_V2))+plot_layout(guides = "collect",widths = c(1,1,1), heights = c(3, 5,5))
+(BC_int&theme(strip.text = element_blank()))/((NN_rate_2/NN_V2/BIX_V2P/HBac_rate_2)|(NH4_V2/BIX_V2/MC_V2P/Hbac_V2))+plot_layout(guides = "collect",widths = c(1,1,1), heights = c(3, 5,5))
 
 ggsave(here("Output","Composite_BACI_means.pdf"), width = 7, 
        height = 13, device = cairo_pdf)
