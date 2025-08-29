@@ -1519,26 +1519,57 @@ Value_rates %>%
 
 ###------------------------ Craig's suggested figures -----------
 #axes the same
+#&Delta;
+
 scale_y2 <- Long_wfDOM %>%
   filter(name %in% c("heterotrophic_bacterioplankton_m_l",
                      "nh4_umol_l","nn_umol_l","bix", "m_c")) %>%
+   mutate(nicenames2 = case_when(
+    name == "heterotrophic_bacterioplankton_m_l" ~ "&Delta;Heterotrophic Bacteria <br> (counts &mu;m<sup>-2</sup> hr<sup>-1</sup>)",
+    name == "nh4_umol_l" ~ "&Delta;Ammonium <br> (&mu;mol m<sup>-2</sup> hr<sup>-1</sup>)",
+    name == "nn_umol_l" ~ "&Delta;Nitrate+Nitrite <br> (&mu;mol m<sup>-2</sup> hr<sup>-1</sup>)",
+    name == "bix"~"&Delta;BIX <br> (m<sup>-2</sup> hr<sup>-1</sup>)" ,
+    name == "m_c"~"&Delta;M:C <br> (m<sup>-2</sup> hr<sup>-1</sup>)",
+  ))%>%
+  mutate(nicenames2 = factor(nicenames2, levels = c(
+    "&Delta;Ammonium <br> (&mu;mol m<sup>-2</sup> hr<sup>-1</sup>)",
+    "&Delta;Nitrate+Nitrite <br> (&mu;mol m<sup>-2</sup> hr<sup>-1</sup>)",
+    "&Delta;BIX <br> (m<sup>-2</sup> hr<sup>-1</sup>)"  ,
+    "&Delta;M:C <br> (m<sup>-2</sup> hr<sup>-1</sup>)" ,
+    "&Delta;Heterotrophic Bacteria <br> (counts &mu;m<sup>-2</sup> hr<sup>-1</sup>)"
+  ))) %>%
   ungroup()%>%
-  group_by(foundation_spp, nicenames, before_after, manipulated)%>%
+  group_by(foundation_spp, nicenames2, before_after, manipulated)%>%
   summarise(max = max(rate_m2_hr, na.rm = TRUE),
             min = min(rate_m2_hr, na.rm = TRUE)) %>%
-  select(foundation_spp, nicenames, max, min) %>%
+  select(foundation_spp, nicenames2, max, min) %>%
   pivot_longer(cols = max:min) %>%
   rename(rate_m2_hr = value) %>%
-  bind_rows(tibble(nicenames = "&Delta; Ammonium <br> (&mu;mol)", rate_m2_hr = 0)) %>%
-  split(~nicenames) |>
+  bind_rows(tibble(nicenames2 = "Ammonium <br> (&mu;mol m<sup>-2</sup> hr<sup>-1</sup>)", rate_m2_hr = 0)) %>%
+  split(~nicenames2) |>
   map(~range(.x$rate_m2_hr)) |> 
   imap(
     ~ scale_y_facet(
-      nicenames == .y,
+      nicenames2 == .y,
       limits = .x
     )
   )
 Long_wfDOM %>%
+  mutate(nicenames2 = case_when(
+    name == "heterotrophic_bacterioplankton_m_l" ~ "&Delta;Heterotrophic Bacteria <br> (counts &mu;m<sup>-2</sup> hr<sup>-1</sup>)",
+    name == "nh4_umol_l" ~ "&Delta;Ammonium <br> (&mu;mol m<sup>-2</sup> hr<sup>-1</sup>)",
+    name == "nn_umol_l" ~ "&Delta;Nitrate+Nitrite <br> (&mu;mol m<sup>-2</sup> hr<sup>-1</sup>)",
+    name == "bix"~"&Delta;BIX <br> (m<sup>-2</sup> hr<sup>-1</sup>)" ,
+    name == "m_c"~"&Delta;M:C <br> (m<sup>-2</sup> hr<sup>-1</sup>)",
+    ))%>%
+  mutate(nicenames2 = factor(nicenames2, levels = c(
+                                                  "&Delta;Ammonium <br> (&mu;mol m<sup>-2</sup> hr<sup>-1</sup>)",
+                                                  "&Delta;Nitrate+Nitrite <br> (&mu;mol m<sup>-2</sup> hr<sup>-1</sup>)",
+                                                  "&Delta;BIX <br> (m<sup>-2</sup> hr<sup>-1</sup>)"  ,
+                                                  "&Delta;M:C <br> (m<sup>-2</sup> hr<sup>-1</sup>)" ,
+                                                 "&Delta;Heterotrophic Bacteria <br> (counts &mu;m<sup>-2</sup> hr<sup>-1</sup>)"
+  ))) %>%
+  
   filter(before_after == "After")%>%
   filter(name %in% c("bix","heterotrophic_bacterioplankton_m_l","m_c","nh4_umol_l","nn_umol_l")) %>%
   ggplot(aes(x = removal_control, y = rate_m2_hr))+
@@ -1547,9 +1578,10 @@ Long_wfDOM %>%
   stat_summary(size = 0.7)+
   scale_fill_manual(values = c("black","#34c230"), guide = "none")+
   labs(x = "", 
-       y = expression("Rate (value m"^-2~"hr"^-1~")"),
+      # y = expression("Rate (value m"^-2~"hr"^-1~")"),
+       y = "",
        shape = "")+
-  ggh4x::facet_grid2(nicenames~foundation_spp, scales = "free_y", independent = "y")+
+  ggh4x::facet_grid2(nicenames2~foundation_spp, scales = "free_y", independent = "y", switch = "y")+
   theme_bw()+
   theme(strip.background = element_blank(),
         strip.placement = "outside", 
@@ -1603,10 +1635,10 @@ scale_y3 <- value_plotdata %>%
  #  stat_summary(size = 0.7)+
   # geom_point(aes(fill = foundation_spp), shape = 23)+
    labs(x = "",
-        y = "Concentration or Density")+
+        y = " ")+
    scale_fill_manual(values = c("black","#34c230"), guide = "none")+
    
-   ggh4x::facet_grid2(nicenames~month, scales = "free_y", independent = "y")+
+   ggh4x::facet_grid2(nicenames~month, scales = "free_y", independent = "y", switch = "y")+
    theme_bw()+
    theme(strip.background = element_blank(),
          strip.placement = "outside", 
