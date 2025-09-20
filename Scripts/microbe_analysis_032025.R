@@ -1060,6 +1060,14 @@ Rates_wide<- Rates %>%
   pivot_wider(values_from = rate_m2_hr, names_from = name) %>%  
   mutate(month = factor(ifelse(before_after == "Before", "July", "August (Upwelling)"), levels = c("July", "August (Upwelling)")))
 
+# Annotation data frame
+annotations <- data.frame(
+  removal = c("Foundation species removed","Unmanipulated"),
+  label = c("b)", "a)"),
+  x_pos = c(-0.06, -0.07), # Adjust position as needed
+  y_pos = c(370, 370)  # Adjust position as needed
+)%>%
+  mutate( removal = factor(removal, levels = c("Foundation species removed","Unmanipulated")),)
 
 Rates_wide %>%
   mutate(removal = case_when(removal_control == "Control"~"Unmanipulated",
@@ -1069,9 +1077,10 @@ Rates_wide %>%
   mutate(foundation_spp = ifelse(foundation_spp == "Mytilus", "Mussel-Dominated","Surfgrass-Dominated"))%>%
   mutate(het_carbon = heterotrophic_bacterioplankton_m_l*20/1e6) %>% # 20 fmol C - nanomol
   ggplot(aes(y = het_carbon, x = do_mg_l))+
-  geom_hline(aes(yintercept  = 0), lty = 2)+
-  geom_vline(aes(xintercept  = 0), lty = 2)+
-  geom_point(aes(color = foundation_spp, shape = month))+
+  geom_hline(aes(yintercept  = 0), lty = 2, alpha = 0.5)+
+  geom_vline(aes(xintercept  = 0), lty = 2, alpha = 0.5)+
+  #geom_point(aes(color = foundation_spp, shape = month))+
+  geom_point(aes(color = foundation_spp))+
   # geom_text(aes(x = 175, y = 0.1, label = "p = 0.036"))+
   #  ylim(-.3,.3)+
   geom_smooth(method ="lm", color = "grey3", data = Rates_wide %>%  
@@ -1082,11 +1091,13 @@ Rates_wide %>%
                 mutate(removal = factor(removal, levels = c("Unmanipulated","Foundation species removed")))%>%
                 filter(foundation_spp != "Ocean",
                        removal == "Unmanipulated"))+
+  geom_text(data = annotations, aes(x = x_pos, y = y_pos, label = label), 
+            hjust = 0, vjust = 1, size = 5)+
   scale_color_manual(values = c("black","#34c230"))+
-  scale_shape_manual(values = c(1,16))+
-  labs(y = "Heterotrophic bacterioplankton <br> (nmol  C  m<sup>-2</sup> hr<sup>-1</sup>)",
-       x = "DO production <br> (mg m<sup>-2</sup> hr<sup>-1</sup>)",
-       shape = "Sampling Month",
+  #scale_shape_manual(values = c(1,16))+
+  labs(y = "Heterotrophic bacteria <br> (nmol  C  m<sup>-2</sup> hr<sup>-1</sup>)",
+       x = "Dissolved oxygen flux <br> (mg m<sup>-2</sup> hr<sup>-1</sup>)",
+       #shape = "Sampling Month",
        color = " Foundation Species")+
   facet_wrap(~removal, scales = "free_x")+
   theme_bw()+
@@ -1096,8 +1107,8 @@ Rates_wide %>%
         axis.text = element_text(size = 12),
         strip.background = element_blank(),
         strip.text = element_text(size = 14),
-        legend.title = element_text(size = 10),
-        legend.text = element_text(size = 8)
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 10)
   )
 ggsave(here("Output","het_DO_regression.pdf"), width = 8, height = 4)
 
